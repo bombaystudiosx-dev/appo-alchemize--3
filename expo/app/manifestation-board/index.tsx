@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Math.round(SCREEN_HEIGHT * 0.35),
+    paddingTop: Math.round(SCREEN_HEIGHT * 0.12),
     paddingBottom: 100,
     paddingHorizontal: 16,
   },
