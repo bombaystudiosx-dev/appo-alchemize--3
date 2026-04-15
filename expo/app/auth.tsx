@@ -209,34 +209,31 @@ placeholder={language === 'en' ? 'Password' : 'Contraseña'}
                   <View style={styles.dividerLine} />
                 </View>
 
-                <TouchableOpacity
-                  style={styles.appleButton}
-                  onPress={async () => {
-                    setAppleLoading(true);
-                    setError('');
-                    const result = await loginWithApple();
-                    setAppleLoading(false);
-                    if (result.success) {
-                      router.replace('/');
-                    } else if (result.error && result.error !== 'Sign in was cancelled') {
-                      setError(result.error);
-                    }
-                  }}
-                  disabled={appleLoading}
-                  activeOpacity={0.8}
-                  testID="apple-sign-in-button"
-                >
+                <View style={styles.appleButtonWrapper}>
                   {appleLoading ? (
-                    <ActivityIndicator color="#000" />
-                  ) : (
-                    <View style={styles.appleButtonContent}>
-                      <Text style={styles.appleIcon}>{"\uF8FF"}</Text>
-                      <Text style={styles.appleButtonText}>
-                        {language === 'en' ? 'Sign in with Apple' : 'Iniciar con Apple'}
-                      </Text>
+                    <View style={styles.appleLoadingContainer}>
+                      <ActivityIndicator color="#000" />
                     </View>
+                  ) : (
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                      cornerRadius={12}
+                      style={styles.appleButton}
+                      onPress={async () => {
+                        setAppleLoading(true);
+                        setError('');
+                        const result = await loginWithApple();
+                        setAppleLoading(false);
+                        if (result.success) {
+                          router.replace('/');
+                        } else if (result.error && result.error !== 'Sign in was cancelled') {
+                          setError(result.error);
+                        }
+                      }}
+                    />
                   )}
-                </TouchableOpacity>
+                </View>
               </>
             )}
 
@@ -454,5 +451,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600' as const,
     color: '#fff',
+  },
+  appleButtonWrapper: {
+    marginBottom: 12,
+  },
+  appleButton: {
+    width: '100%',
+    height: 48,
+  },
+  appleLoadingContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

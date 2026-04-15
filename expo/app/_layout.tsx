@@ -61,7 +61,6 @@ function RootLayoutNav() {
       <Stack.Screen name="habits/index" options={{ title: "Habits" }} />
       <Stack.Screen name="habits/add" options={{ title: "Add Habit", presentation: "modal" }} />
       <Stack.Screen name="financial/index" options={{ title: "Financial Tracker" }} />
-      <Stack.Screen name="financial/add" options={{ title: "Add Transaction", presentation: "modal" }} />
       <Stack.Screen name="calorie/index" options={{ title: "Calorie Tracker" }} />
       <Stack.Screen name="calorie/add" options={{ title: "Add Meal", presentation: "modal" }} />
       <Stack.Screen name="todos/index" options={{ title: "To-Do List" }} />

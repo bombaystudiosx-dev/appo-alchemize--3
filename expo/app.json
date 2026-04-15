@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Alchemize ",
+    "name": "Alchemize",
     "slug": "alchemize-level-up",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,22 +11,11 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0c0520"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.rork.alchemize-level-up",
-      "entitlements": {
-        "com": {
-          "apple": {
-            "security": {
-              "application-groups": [
-                "group.com.myapp"
-              ]
-            }
-          }
-        }
-      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
@@ -52,6 +41,8 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
+    "privacyUrl": "https://alchemize.app/privacy",
+    "termsOfServiceUrl": "https://alchemize.app/terms",
     "plugins": [
       [
         "expo-router",
