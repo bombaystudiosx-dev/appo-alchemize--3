@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Alchemize",
+    "name": "Alchemize ",
     "slug": "alchemize-repo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.rork.alchemize-level-up",
+      "bundleIdentifier": "app.repo.alchemize-level-up",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Alchemize uses your photo library to let you set a profile photo and add images to your manifestation board.",
         "NSCameraUsageDescription": "Alchemize uses your camera to take profile photos and scan food for calorie tracking.",
