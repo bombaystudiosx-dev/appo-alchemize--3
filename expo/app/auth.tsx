@@ -17,9 +17,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, User, Eye, EyeOff, Globe } from 'lucide-react-native';
+import { Mail, Lock, User, Eye, EyeOff, Globe, ChevronRight } from 'lucide-react-native';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CRYSTAL_BALL_IMAGE = 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/89z8qu274hk8f1cht7vcg.png';
 
 const TRANSLATIONS = {
@@ -33,9 +33,9 @@ const TRANSLATIONS = {
     fullName: 'Full Name',
     rememberMe: 'Remember Me',
     forgotPassword: 'Forgot Password?',
-    or: 'OR',
-    signInWithGoogle: 'Sign in with Google',
-    signInWithApple: 'Sign in with Apple',
+    or: 'or continue with',
+    signInWithGoogle: 'Google',
+    signInWithApple: 'Apple',
     fillFields: 'Please fill in all fields',
     enterName: 'Please enter your name',
     resetTitle: 'Reset Password',
@@ -56,9 +56,9 @@ const TRANSLATIONS = {
     fullName: 'Nombre Completo',
     rememberMe: 'Recuérdame',
     forgotPassword: '¿Olvidaste tu contraseña?',
-    or: 'O',
-    signInWithGoogle: 'Iniciar con Google',
-    signInWithApple: 'Iniciar con Apple',
+    or: 'o continuar con',
+    signInWithGoogle: 'Google',
+    signInWithApple: 'Apple',
     fillFields: 'Por favor completa todos los campos',
     enterName: 'Por favor ingresa tu nombre',
     resetTitle: 'Restablecer Contraseña',
@@ -163,52 +163,57 @@ export default function AuthScreen() {
     }
   };
 
+  const showAppleNative = appleAuthAvailable && Platform.OS !== 'web';
+  const showAppleWeb = Platform.OS === 'web';
+
   return (
     <View style={styles.container}>
       <Image
         source={CRYSTAL_BALL_IMAGE}
-        style={styles.background}
+        style={styles.backgroundImage}
         contentFit="cover"
         cachePolicy="memory-disk"
         priority="high"
       />
       <LinearGradient
-        colors={['rgba(10,0,30,0.1)', 'rgba(10,0,30,0.55)', 'rgba(10,0,30,0.92)']}
-        locations={[0, 0.45, 0.75]}
-        style={styles.overlay}
+        colors={['transparent', 'rgba(8,2,20,0.6)', 'rgba(8,2,20,0.95)', '#080214']}
+        locations={[0, 0.35, 0.55, 0.7]}
+        style={styles.gradient}
       />
 
       <TouchableOpacity
         onPress={() => setLanguage(language === 'en' ? 'es' : 'en')}
-        style={styles.languageButton}
+        style={styles.langToggle}
         activeOpacity={0.7}
       >
-        <Globe color="#c4b5fd" size={16} />
-        <Text style={styles.languageText}>{language === 'en' ? 'ES' : 'EN'}</Text>
+        <Globe color="#c4b5fd" size={14} />
+        <Text style={styles.langText}>{language === 'en' ? 'ES' : 'EN'}</Text>
       </TouchableOpacity>
 
       <KeyboardAvoidingView
-        style={styles.keyboardView}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.logoContainer}>
-            <Text style={styles.titleText}>{t.transformTitle}</Text>
-            <Text style={styles.tagline}>{t.transformSubtitle}</Text>
+          <View style={styles.spacer} />
+
+          <View style={styles.brandSection}>
+            <Text style={styles.title}>{t.transformTitle}</Text>
+            <Text style={styles.subtitle}>{t.transformSubtitle}</Text>
           </View>
 
-          <View style={styles.formContainer}>
-            <View style={styles.tabContainer}>
+          <View style={styles.card}>
+            <View style={styles.tabs}>
               <TouchableOpacity
                 style={[styles.tab, mode === 'login' && styles.tabActive]}
                 onPress={() => { setMode('login'); setError(''); }}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.tabText, mode === 'login' && styles.tabTextActive]}>
+                <Text style={[styles.tabLabel, mode === 'login' && styles.tabLabelActive]}>
                   {t.login}
                 </Text>
               </TouchableOpacity>
@@ -217,21 +222,19 @@ export default function AuthScreen() {
                 onPress={() => { setMode('signup'); setError(''); }}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
+                <Text style={[styles.tabLabel, mode === 'signup' && styles.tabLabelActive]}>
                   {t.signup}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {mode === 'signup' && (
-              <View style={styles.inputContainer}>
-                <View style={styles.inputIconContainer}>
-                  <User color="rgba(196,181,253,0.6)" size={18} />
-                </View>
+              <View style={styles.field}>
+                <User color="rgba(167,139,250,0.5)" size={16} style={styles.fieldIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={styles.fieldInput}
                   placeholder={t.fullName}
-                  placeholderTextColor="rgba(196,181,253,0.4)"
+                  placeholderTextColor="rgba(255,255,255,0.3)"
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -239,14 +242,12 @@ export default function AuthScreen() {
               </View>
             )}
 
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIconContainer}>
-                <Mail color="rgba(196,181,253,0.6)" size={18} />
-              </View>
+            <View style={styles.field}>
+              <Mail color="rgba(167,139,250,0.5)" size={16} style={styles.fieldIcon} />
               <TextInput
-                style={styles.input}
+                style={styles.fieldInput}
                 placeholder={t.email}
-                placeholderTextColor="rgba(196,181,253,0.4)"
+                placeholderTextColor="rgba(255,255,255,0.3)"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
@@ -255,14 +256,12 @@ export default function AuthScreen() {
               />
             </View>
 
-            <View style={styles.inputContainer}>
-              <View style={styles.inputIconContainer}>
-                <Lock color="rgba(196,181,253,0.6)" size={18} />
-              </View>
+            <View style={styles.field}>
+              <Lock color="rgba(167,139,250,0.5)" size={16} style={styles.fieldIcon} />
               <TextInput
-                style={styles.input}
+                style={styles.fieldInput}
                 placeholder={t.password}
-                placeholderTextColor="rgba(196,181,253,0.4)"
+                placeholderTextColor="rgba(255,255,255,0.3)"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -271,115 +270,120 @@ export default function AuthScreen() {
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
+                style={styles.eyeBtn}
                 activeOpacity={0.7}
               >
                 {showPassword ? (
-                  <EyeOff color="rgba(196,181,253,0.5)" size={18} />
+                  <EyeOff color="rgba(167,139,250,0.4)" size={16} />
                 ) : (
-                  <Eye color="rgba(196,181,253,0.5)" size={18} />
+                  <Eye color="rgba(167,139,250,0.4)" size={16} />
                 )}
               </TouchableOpacity>
             </View>
 
             {mode === 'login' && (
-              <View style={styles.loginOptionsRow}>
+              <View style={styles.optionsRow}>
                 <TouchableOpacity
-                  style={styles.rememberMeContainer}
+                  style={styles.rememberRow}
                   onPress={() => setRememberMe(!rememberMe)}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-                    {rememberMe && <View style={styles.checkmark} />}
+                  <View style={[styles.check, rememberMe && styles.checkOn]}>
+                    {rememberMe && <View style={styles.checkDot} />}
                   </View>
-                  <Text style={styles.rememberMeText}>{t.rememberMe}</Text>
+                  <Text style={styles.rememberLabel}>{t.rememberMe}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7}>
-                  <Text style={styles.forgotPasswordText}>{t.forgotPassword}</Text>
+                  <Text style={styles.forgotLabel}>{t.forgotPassword}</Text>
                 </TouchableOpacity>
               </View>
             )}
 
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+            {error ? <Text style={styles.errorMsg}>{error}</Text> : null}
 
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={styles.submitBtn}
               onPress={handleAuth}
               disabled={isLoading}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               <LinearGradient
-                colors={['#7c3aed', '#6d28d9']}
+                colors={['#8b5cf6', '#7c3aed', '#6d28d9']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.primaryButtonGradient}
+                end={{ x: 1, y: 1 }}
+                style={styles.submitGradient}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.primaryButtonText}>
-                    {mode === 'login' ? t.login : t.signup}
-                  </Text>
+                  <View style={styles.submitInner}>
+                    <Text style={styles.submitText}>
+                      {mode === 'login' ? t.login : t.signup}
+                    </Text>
+                    <ChevronRight color="#fff" size={18} />
+                  </View>
                 )}
               </LinearGradient>
             </TouchableOpacity>
 
             <View style={styles.divider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>{t.or}</Text>
+              <Text style={styles.dividerLabel}>{t.or}</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
-              style={styles.googleButton}
-              onPress={handleGoogleSignIn}
-              disabled={googleLoading}
-              activeOpacity={0.8}
-            >
-              {googleLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
-              ) : (
-                <>
-                  <Text style={styles.googleIcon}>G</Text>
-                  <Text style={styles.socialButtonText}>{t.signInWithGoogle}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-
-            {appleAuthAvailable && Platform.OS !== 'web' && (
-              <View style={styles.appleButtonWrapper}>
-                {appleLoading ? (
-                  <View style={styles.appleLoadingContainer}>
-                    <ActivityIndicator color="#000" />
-                  </View>
+            <View style={styles.socialRow}>
+              <TouchableOpacity
+                style={styles.socialBtn}
+                onPress={handleGoogleSignIn}
+                disabled={googleLoading}
+                activeOpacity={0.8}
+              >
+                {googleLoading ? (
+                  <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <AppleAuthentication.AppleAuthenticationButton
-                    buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-                    buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
-                    cornerRadius={12}
-                    style={styles.appleButton}
-                    onPress={async () => {
-                      setAppleLoading(true);
-                      setError('');
-                      const result = await loginWithApple();
-                      setAppleLoading(false);
-                      if (result.success) {
-                        router.replace('/');
-                      } else if (result.error && result.error !== 'Sign in was cancelled') {
-                        setError(result.error);
-                      }
-                    }}
-                  />
+                  <>
+                    <Text style={styles.googleG}>G</Text>
+                    <Text style={styles.socialLabel}>{t.signInWithGoogle}</Text>
+                  </>
                 )}
-              </View>
-            )}
-
-            {Platform.OS === 'web' && (
-              <TouchableOpacity style={styles.appleWebButton} activeOpacity={0.8} disabled>
-                <Text style={styles.appleWebIcon}></Text>
-                <Text style={styles.appleWebText}>{t.signInWithApple}</Text>
               </TouchableOpacity>
-            )}
+
+              {showAppleNative && (
+                <View style={styles.socialBtn}>
+                  {appleLoading ? (
+                    <View style={styles.appleLoading}>
+                      <ActivityIndicator color="#fff" size="small" />
+                    </View>
+                  ) : (
+                    <AppleAuthentication.AppleAuthenticationButton
+                      buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+                      buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+                      cornerRadius={10}
+                      style={styles.appleNativeBtn}
+                      onPress={async () => {
+                        setAppleLoading(true);
+                        setError('');
+                        const result = await loginWithApple();
+                        setAppleLoading(false);
+                        if (result.success) {
+                          router.replace('/');
+                        } else if (result.error && result.error !== 'Sign in was cancelled') {
+                          setError(result.error);
+                        }
+                      }}
+                    />
+                  )}
+                </View>
+              )}
+
+              {showAppleWeb && (
+                <TouchableOpacity style={styles.socialBtn} activeOpacity={0.8} disabled>
+                  <Text style={styles.appleIcon}></Text>
+                  <Text style={styles.socialLabel}>{t.signInWithApple}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -390,196 +394,198 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a001e',
+    backgroundColor: '#080214',
   },
-  background: {
+  flex: {
+    flex: 1,
+  },
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: SCREEN_HEIGHT * 0.55,
+  },
+  gradient: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    width: '100%',
-    height: '100%',
   },
-  overlay: {
+  langToggle: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  languageButton: {
-    position: 'absolute',
-    top: 56,
-    right: 20,
+    top: 54,
+    right: 16,
     zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(124,58,237,0.25)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 5,
+    backgroundColor: 'rgba(139,92,246,0.2)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: 'rgba(196,181,253,0.2)',
+    borderColor: 'rgba(139,92,246,0.15)',
   },
-  languageText: {
+  langText: {
     color: '#c4b5fd',
-    fontSize: 13,
-    fontWeight: '700' as const,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: '600' as const,
   },
-  keyboardView: {
-    flex: 1,
-  },
-  scrollContent: {
+  scroll: {
     flexGrow: 1,
     justifyContent: 'flex-end',
-    paddingHorizontal: 24,
-    paddingBottom: 44,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
-  logoContainer: {
+  spacer: {
+    flex: 1,
+    minHeight: 60,
+  },
+  brandSection: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
+    paddingHorizontal: 24,
   },
-  titleText: {
-    fontSize: 32,
+  title: {
+    fontSize: 28,
     fontWeight: '800' as const,
     color: '#fff',
-    letterSpacing: 3,
-    textShadowColor: 'rgba(124,58,237,0.8)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 20,
-    marginBottom: 6,
-  },
-  tagline: {
-    fontSize: 16,
-    color: 'rgba(196,181,253,0.9)',
     letterSpacing: 2,
+    textShadowColor: 'rgba(139,92,246,0.6)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 16,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(196,181,253,0.8)',
+    letterSpacing: 1.5,
     fontWeight: '500' as const,
-    fontStyle: 'italic' as const,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 6,
   },
-  formContainer: {
-    width: '100%',
+  card: {
+    marginHorizontal: 20,
+    backgroundColor: 'rgba(15,8,30,0.85)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(139,92,246,0.12)',
   },
-  tabContainer: {
+  tabs: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(124,58,237,0.12)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(139,92,246,0.08)',
+    borderRadius: 12,
     padding: 3,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.15)',
   },
   tab: {
     flex: 1,
-    paddingVertical: 11,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 11,
+    borderRadius: 10,
   },
   tabActive: {
-    backgroundColor: '#7c3aed',
-    shadowColor: '#7c3aed',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    backgroundColor: 'rgba(139,92,246,0.9)',
   },
-  tabText: {
-    fontSize: 14,
+  tabLabel: {
+    fontSize: 13,
     fontWeight: '600' as const,
-    color: 'rgba(196,181,253,0.5)',
+    color: 'rgba(196,181,253,0.45)',
   },
-  tabTextActive: {
+  tabLabelActive: {
     color: '#fff',
     fontWeight: '700' as const,
   },
-  inputContainer: {
+  field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(124,58,237,0.1)',
+    backgroundColor: 'rgba(139,92,246,0.06)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(124,58,237,0.2)',
-    marginBottom: 12,
+    borderColor: 'rgba(139,92,246,0.12)',
+    marginBottom: 10,
+    height: 46,
   },
-  inputIconContainer: {
-    paddingLeft: 14,
-    paddingRight: 4,
+  fieldIcon: {
+    marginLeft: 14,
+    marginRight: 2,
   },
-  input: {
+  fieldInput: {
     flex: 1,
     paddingHorizontal: 10,
-    paddingVertical: 13,
     fontSize: 14,
     color: '#fff',
+    height: '100%',
   },
-  eyeButton: {
+  eyeBtn: {
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    height: '100%',
+    justifyContent: 'center',
   },
-  loginOptionsRow: {
+  optionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
+    marginTop: 2,
   },
-  rememberMeContainer: {
+  rememberRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: 'rgba(196,181,253,0.4)',
-    marginRight: 8,
+  check: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: 'rgba(167,139,250,0.35)',
+    marginRight: 7,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  checkboxActive: {
+  checkOn: {
     backgroundColor: '#7c3aed',
     borderColor: '#7c3aed',
   },
-  checkmark: {
-    width: 8,
-    height: 8,
+  checkDot: {
+    width: 7,
+    height: 7,
     backgroundColor: '#fff',
-    borderRadius: 2,
+    borderRadius: 1.5,
   },
-  rememberMeText: {
-    fontSize: 12,
-    color: 'rgba(196,181,253,0.7)',
+  rememberLabel: {
+    fontSize: 11,
+    color: 'rgba(196,181,253,0.6)',
     fontWeight: '500' as const,
   },
-  forgotPasswordText: {
-    fontSize: 12,
+  forgotLabel: {
+    fontSize: 11,
     color: '#a78bfa',
     fontWeight: '600' as const,
   },
-  errorText: {
-    color: '#ff6b6b',
+  errorMsg: {
+    color: '#f87171',
     fontSize: 12,
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  primaryButton: {
+  submitBtn: {
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 14,
-    shadowColor: '#7c3aed',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
+    marginTop: 6,
+    marginBottom: 16,
   },
-  primaryButtonGradient: {
-    paddingVertical: 14,
+  submitGradient: {
+    paddingVertical: 13,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  primaryButtonText: {
+  submitInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  submitText: {
     fontSize: 15,
     fontWeight: '700' as const,
     color: '#fff',
@@ -592,70 +598,53 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(124,58,237,0.2)',
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(139,92,246,0.2)',
   },
-  dividerText: {
+  dividerLabel: {
     marginHorizontal: 12,
     fontSize: 11,
-    color: 'rgba(196,181,253,0.4)',
-    fontWeight: '600' as const,
+    color: 'rgba(196,181,253,0.35)',
+    fontWeight: '500' as const,
   },
-  googleButton: {
+  socialRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  socialBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 12,
-    paddingVertical: 13,
-    marginBottom: 10,
+    height: 44,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    gap: 10,
+    borderColor: 'rgba(255,255,255,0.08)',
+    gap: 8,
   },
-  googleIcon: {
-    fontSize: 18,
+  googleG: {
+    fontSize: 16,
     fontWeight: '700' as const,
     color: '#fff',
   },
-  socialButtonText: {
-    fontSize: 14,
+  socialLabel: {
+    fontSize: 13,
     fontWeight: '600' as const,
-    color: '#fff',
+    color: 'rgba(255,255,255,0.85)',
   },
-  appleButtonWrapper: {
-    marginBottom: 10,
+  appleLoading: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  appleButton: {
+  appleNativeBtn: {
     width: '100%',
-    height: 48,
+    height: 44,
   },
-  appleLoadingContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  appleWebButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingVertical: 13,
-    marginBottom: 10,
-    gap: 8,
-    opacity: 0.6,
-  },
-  appleWebIcon: {
-    fontSize: 18,
-    color: '#000',
+  appleIcon: {
+    fontSize: 16,
+    color: '#fff',
     fontWeight: '600' as const,
-  },
-  appleWebText: {
-    fontSize: 14,
-    fontWeight: '600' as const,
-    color: '#000',
   },
 });
