@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider } from "@/contexts/auth-context";
 import { initDatabase } from "@/lib/database";
 import NetworkBanner from "@/components/NetworkBanner";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,14 @@ export default function RootLayout() {
       initDatabase()
         .then(() => console.log('[App] Database ready'))
         .catch((err) => console.error('[App] Database init failed:', err));
+
+      console.log('[App] Registering for push notifications...');
+      registerForPushNotifications()
+        .then((token) => {
+          if (token) console.log('[App] Push token registered:', token);
+          else console.log('[App] Push notification registration skipped or failed');
+        })
+        .catch((err) => console.error('[App] Push registration error:', err));
     }
   }, []);
 

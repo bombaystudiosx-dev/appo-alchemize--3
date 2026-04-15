@@ -17,6 +17,8 @@ import { appointmentsDb } from '@/lib/database';
 import type { Appointment, AppointmentCategory } from '@/types';
 import { startOfLocalDay } from '@/lib/date-utils';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { scheduleAppointmentNotification } from '@/lib/notifications';
+import { promptAddToCalendar } from '@/lib/calendar';
 
 const PERSONAL_COLOR = '#3b82f6';
 const BUSINESS_COLOR = '#22c55e';
@@ -100,6 +102,26 @@ export default function AddAppointmentScreen() {
       } else {
         await appointmentsDb.create(appointment);
         console.log('[Appointments] Created appointment:', appointment.id);
+      }
+
+      if (reminder && Platform.OS !== 'web') {
+        await scheduleAppointmentNotification(
+          appointment.id,
+          appointment.title,
+          appointment.date,
+          appointment.time,
+        );
+        console.log('[Appointments] Notification scheduled for:', appointment.title);
+      }
+
+      if (!isEditing && Platform.OS !== 'web') {
+        await promptAddToCalendar(
+          appointment.title,
+          appointment.date,
+          appointment.time,
+          appointment.notes,
+          appointment.category,
+        );
       }
 
       router.back();

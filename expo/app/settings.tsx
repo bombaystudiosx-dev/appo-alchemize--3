@@ -39,10 +39,14 @@ import {
   AlertCircle,
   Download,
   Smartphone,
+  Bell,
+  CalendarDays,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDatabase } from '@/lib/database';
+import { registerForPushNotifications, getNotificationStatus } from '@/lib/notifications';
+import { requestCalendarPermission, getCalendarPermissionStatus } from '@/lib/calendar';
 import {
   isHealthKitSupported,
   getStoredPermissions,
@@ -69,7 +73,6 @@ const getDefaultProfile = (user: { name: string; email: string } | null): UserPr
 
 const STORAGE_KEY = '@alchemize_user_profile';
 const FEATURES_VISIBILITY_KEY = '@alchemize_features_visibility';
-const CALENDAR_VISIBILITY_KEY = '@alchemize_calendar_visibility';
 
 interface FeatureVisibility {
   [key: string]: boolean;
@@ -102,7 +105,6 @@ export default function SettingsScreen() {
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>({});
   const [themeModalVisible, setThemeModalVisible] = useState(false);
-  const [calendarVisible, setCalendarVisible] = useState(true);
 
   const [healthKitModalVisible, setHealthKitModalVisible] = useState(false);
   const [healthKitPermissions, setHealthKitPermissions] = useState<HealthKitPermissions | null>(null);
@@ -111,6 +113,8 @@ export default function SettingsScreen() {
   const { theme, setTheme } = useTheme();
   const [pwaInstallPrompt, setPwaInstallPrompt] = useState<any>(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [calendarEnabled, setCalendarEnabled] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -198,30 +202,6 @@ export default function SettingsScreen() {
     }
   }, [user?.id, featureVisibility]);
 
-  const loadCalendarVisibility = useCallback(async () => {
-    try {
-      const userCalendarKey = user?.id ? `${CALENDAR_VISIBILITY_KEY}_${user.id}` : CALENDAR_VISIBILITY_KEY;
-      const stored = await AsyncStorage.getItem(userCalendarKey);
-      if (stored !== null) {
-        setCalendarVisible(stored === 'true');
-        console.log('[Settings] Calendar visibility loaded:', stored);
-      }
-    } catch (error) {
-      console.error('[Settings] Error loading calendar visibility:', error);
-    }
-  }, [user?.id]);
-
-  const toggleCalendarVisibility = useCallback(async () => {
-    try {
-      const userCalendarKey = user?.id ? `${CALENDAR_VISIBILITY_KEY}_${user.id}` : CALENDAR_VISIBILITY_KEY;
-      const newValue = !calendarVisible;
-      setCalendarVisible(newValue);
-      await AsyncStorage.setItem(userCalendarKey, String(newValue));
-      console.log('[Settings] Calendar visibility updated:', newValue);
-    } catch (error) {
-      console.error('[Settings] Error saving calendar visibility:', error);
-    }
-  }, [user?.id, calendarVisible]);
 
   const loadHealthKitStatus = useCallback(async () => {
     try {
@@ -238,7 +218,6 @@ export default function SettingsScreen() {
   useEffect(() => {
     loadProfile();
     loadFeatureVisibility();
-    loadCalendarVisibility();
     loadHealthKitStatus();
 
     if (Platform.OS === 'web') {
@@ -261,9 +240,75 @@ export default function SettingsScreen() {
         window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       };
     }
-  }, [loadProfile, loadFeatureVisibility, loadCalendarVisibility, loadHealthKitStatus]);
+    if (Platform.OS !== 'web') {
+      getNotificationStatus().then(setNotificationsEnabled).catch(() => {});
+      getCalendarPermissionStatus().then(setCalendarEnabled).catch(() => {});
+    }
+  }, [loadProfile, loadFeatureVisibility, loadHealthKitStatus]);
 
+  const handleToggleNotifications = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Available', 'Push notifications are only available on mobile devices.');
+      return;
+    }
+    if (notificationsEnabled) {
+      Alert.alert(
+        'Disable Notifications',
+        'To disable notifications, go to your device Settings > Notifications > Alchemize.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+    } else {
+      const token = await registerForPushNotifications();
+      if (token) {
+        setNotificationsEnabled(true);
+        Alert.alert('Notifications Enabled', 'You will now receive push notifications for reminders and appointments.');
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    }
+  };
 
+  const handleToggleCalendar = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert('Not Available', 'Calendar integration is only available on mobile devices.');
+      return;
+    }
+    if (calendarEnabled) {
+      Alert.alert(
+        'Calendar Access',
+        'To revoke calendar access, go to your device Settings > Privacy > Calendars > Alchemize.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]
+      );
+    } else {
+      const granted = await requestCalendarPermission();
+      if (granted) {
+        setCalendarEnabled(true);
+        Alert.alert('Calendar Connected', 'Appointments will now sync to your iPhone calendar.');
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Please enable calendar access in your device settings.',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+      }
+    }
+  };
 
   const handlePwaInstall = async () => {
     if (isPwaInstalled) {
@@ -718,6 +763,44 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.settingRow} onPress={handleToggleNotifications}>
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+              <Bell color="#3b82f6" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Push Notifications</Text>
+              <Text style={styles.settingSubtitle}>
+                {notificationsEnabled ? 'Enabled • Receiving reminders' : 'Enable to receive appointment reminders'}
+              </Text>
+            </View>
+          </View>
+          {notificationsEnabled ? (
+            <CheckCircle color="#22c55e" size={20} />
+          ) : (
+            <ChevronRight color="#666" size={20} />
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.settingRow} onPress={handleToggleCalendar}>
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(34, 197, 94, 0.15)' }]}>
+              <CalendarDays color="#22c55e" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>iPhone Calendar</Text>
+              <Text style={styles.settingSubtitle}>
+                {calendarEnabled ? 'Connected • Syncing appointments' : 'Sync appointments to your iPhone calendar'}
+              </Text>
+            </View>
+          </View>
+          {calendarEnabled ? (
+            <CheckCircle color="#22c55e" size={20} />
+          ) : (
+            <ChevronRight color="#666" size={20} />
+          )}
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.settingRow} onPress={() => setThemeModalVisible(true)}>
           <View style={styles.settingRowLeft}>
             <View style={styles.iconContainer}>
@@ -756,24 +839,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         )}
 
-        <View style={styles.settingRow}>
-          <View style={styles.settingRowLeft}>
-            <View style={styles.iconContainer}>
-              <Eye color="#a78bfa" size={20} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Show Calendar</Text>
-              <Text style={styles.settingSubtitle}>Display unified calendar on home screen</Text>
-            </View>
-          </View>
-          <Switch
-            value={calendarVisible}
-            onValueChange={toggleCalendarVisibility}
-            trackColor={{ false: '#3a3a3a', true: '#a78bfa' }}
-            thumbColor={calendarVisible ? '#fff' : '#ccc'}
-            ios_backgroundColor="#3a3a3a"
-          />
-        </View>
+
       </View>
 
       {/* Data Section */}
