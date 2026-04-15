@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,12 +12,21 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'expo-router';
 
 export default function AuthScreen() {
   const router = useRouter();
-  const { login, signup } = useAuth();
+  const { login, signup, loginWithApple } = useAuth();
+  const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      AppleAuthentication.isAvailableAsync().then(setAppleAuthAvailable).catch(() => setAppleAuthAvailable(false));
+    }
+  }, []);
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -192,6 +201,44 @@ placeholder={language === 'en' ? 'Password' : 'Contraseña'}
               </LinearGradient>
             </TouchableOpacity>
 
+            {appleAuthAvailable && Platform.OS !== 'web' && (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>{language === 'en' ? 'OR' : 'O'}</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.appleButton}
+                  onPress={async () => {
+                    setAppleLoading(true);
+                    setError('');
+                    const result = await loginWithApple();
+                    setAppleLoading(false);
+                    if (result.success) {
+                      router.replace('/');
+                    } else if (result.error && result.error !== 'Sign in was cancelled') {
+                      setError(result.error);
+                    }
+                  }}
+                  disabled={appleLoading}
+                  activeOpacity={0.8}
+                  testID="apple-sign-in-button"
+                >
+                  {appleLoading ? (
+                    <ActivityIndicator color="#000" />
+                  ) : (
+                    <View style={styles.appleButtonContent}>
+                      <Text style={styles.appleIcon}>{"\uF8FF"}</Text>
+                      <Text style={styles.appleButtonText}>
+                        {language === 'en' ? 'Sign in with Apple' : 'Iniciar con Apple'}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </>
+            )}
 
           </View>
         </ScrollView>

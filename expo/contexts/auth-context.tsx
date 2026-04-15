@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import createContextHook from '@nkzw/create-context-hook';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 
 import { setCurrentUserId } from '@/lib/database';
 
@@ -170,6 +173,88 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, []);
 
+  const loginWithApple = useCallback(async () => {
+    try {
+      console.log('[Auth] Starting Apple Sign In...');
+
+      if (Platform.OS === 'web') {
+        return { success: false, error: 'Apple Sign In is not available on web' };
+      }
+
+      const isAvailable = await AppleAuthentication.isAvailableAsync();
+      if (!isAvailable) {
+        return { success: false, error: 'Apple Sign In is not available on this device' };
+      }
+
+      const nonce = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        Math.random().toString(36).substring(2, 15)
+      );
+
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      console.log('[Auth] Apple credential received:', credential.user);
+
+      const appleUserId = `apple_${credential.user}`;
+      const appleEmail = credential.email || `${credential.user}@privaterelay.appleid.com`;
+      const appleName = credential.fullName
+        ? [credential.fullName.givenName, credential.fullName.familyName].filter(Boolean).join(' ') || 'Apple User'
+        : 'Apple User';
+
+      const usersData = await AsyncStorage.getItem(USERS_STORAGE_KEY);
+      const users: StoredUser[] = usersData ? JSON.parse(usersData) : [];
+
+      let existingUser = users.find(u => u.id === appleUserId);
+      if (!existingUser) {
+        const newUser: StoredUser = {
+          id: appleUserId,
+          email: appleEmail,
+          name: appleName,
+          password: '',
+        };
+        users.push(newUser);
+        await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        existingUser = newUser;
+        console.log('[Auth] New Apple user created:', appleUserId);
+      } else {
+        if (credential.fullName?.givenName) {
+          existingUser.name = appleName;
+          await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+        }
+      }
+
+      const token = `apple_token_${appleUserId}_${Date.now()}`;
+      const newAuthState: AuthState = {
+        user: {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+        },
+        token,
+      };
+
+      setAuthState(newAuthState);
+      setCurrentUserId(existingUser.id);
+      console.log('[Auth] Apple Sign In successful:', existingUser.email);
+
+      await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newAuthState));
+
+      return { success: true };
+    } catch (error: any) {
+      if (error.code === 'ERR_REQUEST_CANCELED') {
+        console.log('[Auth] Apple Sign In cancelled by user');
+        return { success: false, error: 'Sign in was cancelled' };
+      }
+      console.error('[Auth] Apple Sign In error:', error);
+      return { success: false, error: error.message || 'Apple Sign In failed' };
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       console.log('[Auth] Logging out');
@@ -195,6 +280,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     rememberMe,
     login,
     signup,
+    loginWithApple,
     logout,
-  }), [authState.user, authState.token, rememberMe, login, signup, logout]);
+  }), [authState.user, authState.token, rememberMe, login, signup, loginWithApple, logout]);
 });
