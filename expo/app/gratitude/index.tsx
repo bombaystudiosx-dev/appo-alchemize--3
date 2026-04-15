@@ -11,10 +11,11 @@ import { startOfLocalDay } from '@/lib/date-utils';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 
-const WEEK_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as const;
+const WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 const QUOTE = "Even on hard days, there's always something to be grateful for. Focus on the good.";
-const INITIAL_MONTH = new Date(2026, 2, 1);
-const INITIAL_SELECTED_DATE = startOfLocalDay(new Date(2026, 2, 28)).getTime();
+const now = new Date();
+const INITIAL_MONTH = new Date(now.getFullYear(), now.getMonth(), 1);
+const INITIAL_SELECTED_DATE = startOfLocalDay(now).getTime();
 
 type BottomNavKey = 'home' | 'streaks' | 'explore' | 'profile';
 
@@ -422,9 +423,9 @@ export default function GratitudeJournalScreen() {
               </View>
 
               <View style={styles.weekRow}>
-                {WEEK_DAYS.map((day) => (
-                  <Text key={day} style={styles.weekLabel}>
-                    {day}
+                {WEEK_DAYS.map((day, idx) => (
+                  <Text key={`week-${idx}`} style={styles.weekLabel}>
+                    {day.charAt(0)}
                   </Text>
                 ))}
               </View>

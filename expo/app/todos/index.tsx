@@ -514,7 +514,7 @@ export default function TodosScreen() {
         />
       )}
 
-      {showDatePicker && selectedTaskForDate && (
+      {Platform.OS !== 'web' && showDatePicker && selectedTaskForDate && (
         <DateTimePicker
           value={selectedTaskForDate.dueDate ? new Date(selectedTaskForDate.dueDate) : new Date()}
           mode="date"
@@ -524,7 +524,7 @@ export default function TodosScreen() {
         />
       )}
 
-      {showTimePicker && selectedTaskForDate && (
+      {Platform.OS !== 'web' && showTimePicker && selectedTaskForDate && (
         <DateTimePicker
           value={new Date()}
           mode="time"
