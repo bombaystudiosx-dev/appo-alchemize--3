@@ -1048,7 +1048,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE TERMS & CONDITIONS</Text>
-              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
+              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
 
               <Text style={styles.legalSectionTitle}>1. Agreement</Text>
               <Text style={styles.legalText}>
@@ -1244,7 +1244,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE PRIVACY POLICY</Text>
-              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
+              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
 
               <Text style={styles.legalSectionTitle}>1. Overview</Text>
               <Text style={styles.legalText}>

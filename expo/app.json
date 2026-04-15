@@ -17,15 +17,18 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.rork.alchemize-level-up",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
-        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
-        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
+        "NSPhotoLibraryUsageDescription": "Alchemize uses your photo library to let you set a profile photo and add images to your manifestation board.",
+        "NSCameraUsageDescription": "Alchemize uses your camera to take profile photos and scan food for calorie tracking.",
+        "NSMicrophoneUsageDescription": "Alchemize uses the microphone for audio recording features.",
+        "NSHealthShareUsageDescription": "Alchemize reads your workout and activity data from Apple Health to enhance your fitness tracking experience.",
+        "NSCalendarsUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event.",
+        "NSCalendarsFullAccessUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event."
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0c0520"
       },
       "package": "app.rork.alchemize_app_skeleton",
       "permissions": [
@@ -41,8 +44,7 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-    "privacyUrl": "https://alchemize.app/privacy",
-    "termsOfServiceUrl": "https://alchemize.app/terms",
+    "privacy": "https://alchemize.app/privacy",
     "plugins": [
       [
         "expo-router",

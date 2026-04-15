@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider } from "@/contexts/auth-context";
 import { initDatabase } from "@/lib/database";
 import NetworkBanner from "@/components/NetworkBanner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { registerForPushNotifications } from "@/lib/notifications";
 
 const queryClient = new QueryClient({
@@ -106,20 +107,22 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SafeAreaProvider>
-        <AuthProvider>
-          <ThemeProvider>
-            <GestureHandlerRootView style={layoutStyles.root}>
-              <View style={layoutStyles.root}>
-                <RootLayoutNav />
-                <NetworkBanner />
-              </View>
-            </GestureHandlerRootView>
-          </ThemeProvider>
-        </AuthProvider>
-      </SafeAreaProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <GestureHandlerRootView style={layoutStyles.root}>
+                <View style={layoutStyles.root}>
+                  <RootLayoutNav />
+                  <NetworkBanner />
+                </View>
+              </GestureHandlerRootView>
+            </ThemeProvider>
+          </AuthProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 
