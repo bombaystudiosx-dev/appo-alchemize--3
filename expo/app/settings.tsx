@@ -41,7 +41,9 @@ import {
   Smartphone,
   Bell,
   CalendarDays,
+  Star,
 } from 'lucide-react-native';
+import * as StoreReview from 'expo-store-review';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDatabase } from '@/lib/database';
@@ -809,6 +811,36 @@ export default function SettingsScreen() {
             <View style={styles.settingTextContainer}>
               <Text style={styles.settingTitle}>Theme</Text>
               <Text style={styles.settingSubtitle}>{theme === 'cosmic-dark' ? 'Cosmic Dark' : 'Cosmic'}</Text>
+            </View>
+          </View>
+          <ChevronRight color="#666" size={20} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.settingRow} onPress={async () => {
+          if (Platform.OS === 'web') {
+            Alert.alert('Not Available', 'Rating is only available on mobile devices.');
+            return;
+          }
+          try {
+            const isAvailable = await StoreReview.isAvailableAsync();
+            if (isAvailable) {
+              await StoreReview.requestReview();
+              console.log('[Settings] Store review requested');
+            } else {
+              Alert.alert('Not Available', 'In-app review is not available on this device.');
+            }
+          } catch (error) {
+            console.error('[Settings] Store review error:', error);
+            Alert.alert('Error', 'Could not open the review prompt. Please try again later.');
+          }
+        }}>
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 191, 36, 0.15)' }]}>
+              <Star color="#fbbf24" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Rate Alchemize</Text>
+              <Text style={styles.settingSubtitle}>Love the app? Leave us a review</Text>
             </View>
           </View>
           <ChevronRight color="#666" size={20} />
