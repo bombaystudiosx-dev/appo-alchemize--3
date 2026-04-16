@@ -24,6 +24,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "app.repo.alchemize-level-up",
       "buildNumber": "1",
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Alchemize uses your photo library to set your profile photo and add images to your manifestation board.",
         "NSPhotoLibraryAddUsageDescription": "Alchemize saves images to your photo library.",
@@ -127,7 +130,14 @@
           "recordAudioAndroid": true
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "expo-auth-session",
+        {
+          "iosUrlSchemes": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
