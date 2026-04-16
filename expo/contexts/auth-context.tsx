@@ -259,6 +259,18 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       console.log('[Auth] Starting Google Sign In...');
 
+      const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+      console.log('[Auth] Google client IDs configured:', {
+        ios: iosClientId ? '✓ set' : '✗ missing',
+        web: webClientId ? '✓ set' : '✗ missing',
+      });
+
+      if (!iosClientId && !webClientId) {
+        console.warn('[Auth] No Google client IDs configured. Set EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID and EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file.');
+      }
+
       const userId = `google_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const googleEmail = `user_${Date.now()}@gmail.com`;
       const googleName = 'Google User';

@@ -5,13 +5,20 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "rork-app",
+    "scheme": "alchemize",
+    "owner": "crfenterprise-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0c0520"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8a713b4d-71d5-4f30-9d02-37db8eb46755"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     },
     "ios": {
       "supportsTablet": false,
@@ -51,7 +58,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0c0520"
       },
-      "package": "app.rork.alchemize_app_skeleton",
+      "package": "com.crfenterprise.alchemize",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -66,11 +74,16 @@
       "favicon": "./assets/images/favicon.png"
     },
     "privacy": "https://alchemize.app/privacy",
+    "extra": {
+      "eas": {
+        "projectId": "8a713b4d-71d5-4f30-9d02-37db8eb46755"
+      }
+    },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://rork.com/"
+          "origin": "https://alchemize.app/"
         }
       ],
       "expo-font",

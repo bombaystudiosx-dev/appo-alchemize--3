@@ -43,6 +43,14 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { generateObject } from '@rork-ai/toolkit-sdk';
+
+const RORK_API_KEY = process.env.EXPO_PUBLIC_RORK_API_KEY ?? '';
+
+if (!RORK_API_KEY) {
+  console.warn('[FoodScanner] EXPO_PUBLIC_RORK_API_KEY is not set. AI food analysis may not work correctly.');
+} else {
+  console.log('[FoodScanner] API key configured ✓');
+}
 import { z } from 'zod';
 import { foodLogsDb, appointmentsDb } from '@/lib/database';
 import type { FoodLog, MealType, Appointment } from '@/types';
