@@ -131,13 +131,7 @@
         }
       ],
       "expo-secure-store",
-      "expo-apple-authentication",
-      [
-        "expo-auth-session",
-        {
-          "iosUrlSchemes": []
-        }
-      ]
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true
