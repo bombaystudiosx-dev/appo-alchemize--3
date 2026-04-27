@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useRootNavigationState, useSegments } from 'expo-router';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  Platform,
   View,
   ActivityIndicator,
 } from 'react-native';
@@ -41,7 +40,6 @@ function BackButton() {
       onPress={() => router.back()}
       style={layoutStyles.backButton}
       activeOpacity={0.7}
-      testID="global-back-button"
     >
       <ChevronLeft color="#ffffff" size={18} strokeWidth={2.5} />
       <Text style={layoutStyles.backButtonText}>Back</Text>
@@ -58,7 +56,7 @@ function SplashScreen() {
       />
       <View style={layoutStyles.splashContent}>
         <Text style={layoutStyles.splashTitle}>Alchemize</Text>
-        <ActivityIndicator color="#a78bfa" size="large" style={layoutStyles.splashLoader} />
+        <ActivityIndicator color="#a78bfa" size="large" style={{ marginTop: 8 }} />
       </View>
     </View>
   );
@@ -66,82 +64,84 @@ function SplashScreen() {
 
 function NavigationGuard() {
   const { isInitialized, isAuthenticated } = useAuth();
-  const [termsVersion, setTermsVersion] = useState<string | null | 'loading'>('loading');
-  const [timedOut, setTimedOut] = useState(false);
+  const [ready, setReady] = useState(false);
   const segments = useSegments();
   const router = useRouter();
   const mountedRef = useRef(true);
+  const isNavigating = useRef(false);
 
-  // Safety timeout — force proceed after 5 seconds no matter what
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (mountedRef.current) {
-        setTimedOut(true);
-        if (termsVersion === 'loading') setTermsVersion(null);
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // Run navigation check every time auth or segments change.
+  // Always read AsyncStorage fresh to avoid stale-state issues.
+  useEffect(() => {
+    let cancelled = false;
+
+    const runGuard = async () => {
+      // Wait up to 6s for auth to initialize, then proceed anyway
+      let waited = 0;
+      while (!isInitialized && waited < 6000) {
+        await new Promise(r => setTimeout(r, 100));
+        waited += 100;
       }
-    }, 5000);
-    return () => {
-      clearTimeout(timer);
-      mountedRef.current = false;
+
+      if (cancelled || !mountedRef.current) return;
+
+      // Always read fresh from storage
+      let termsAccepted = false;
+      try {
+        const stored = await AsyncStorage.getItem(TERMS_ACCEPTED_KEY);
+        termsAccepted = stored === TERMS_VERSION;
+      } catch {
+        termsAccepted = false;
+      }
+
+      if (cancelled || !mountedRef.current) return;
+
+      if (!ready) setReady(true);
+
+      const root = segments[0] as string | undefined;
+      const onTerms = root === 'terms';
+      const onAuth = root === 'auth';
+
+      console.log('[NavigationGuard] Check:', {
+        isInitialized,
+        isAuthenticated,
+        termsAccepted,
+        currentRoute: root,
+      });
+
+      if (isNavigating.current) return;
+
+      if (!termsAccepted && !onTerms) {
+        isNavigating.current = true;
+        router.replace('/terms');
+        setTimeout(() => { isNavigating.current = false; }, 500);
+        return;
+      }
+
+      if (termsAccepted && !isAuthenticated && !onAuth && !onTerms) {
+        isNavigating.current = true;
+        router.replace('/auth');
+        setTimeout(() => { isNavigating.current = false; }, 500);
+        return;
+      }
+
+      if (termsAccepted && isAuthenticated && (onAuth || onTerms)) {
+        isNavigating.current = true;
+        router.replace('/');
+        setTimeout(() => { isNavigating.current = false; }, 500);
+        return;
+      }
     };
-  }, []);
 
-  const checkTerms = useCallback(async () => {
-    try {
-      const val = await AsyncStorage.getItem(TERMS_ACCEPTED_KEY);
-      if (mountedRef.current) setTermsVersion(val ?? null);
-      console.log('[NavigationGuard] Terms version stored:', val);
-    } catch {
-      if (mountedRef.current) setTermsVersion(null);
-    }
-  }, []);
+    void runGuard();
+    return () => { cancelled = true; };
+  }, [isInitialized, isAuthenticated, segments]);
 
-  useEffect(() => {
-    void checkTerms();
-  }, [checkTerms]);
-
-  useEffect(() => {
-    // Wait for both auth and terms to resolve, OR for timeout
-    const authReady = isInitialized || timedOut;
-    const termsReady = termsVersion !== 'loading';
-    if (!authReady || !termsReady) return;
-
-    const termsAccepted = termsVersion === TERMS_VERSION;
-    const root = segments[0] as string | undefined;
-    const onTerms = root === 'terms';
-    const onAuth = root === 'auth';
-
-    console.log('[NavigationGuard] Check:', {
-      isInitialized,
-      isAuthenticated,
-      termsAccepted,
-      currentRoute: root,
-      timedOut,
-    });
-
-    if (!termsAccepted && !onTerms) {
-      router.replace('/terms');
-      return;
-    }
-
-    if (termsAccepted && !isAuthenticated && !onAuth) {
-      router.replace('/auth');
-      return;
-    }
-
-    if (termsAccepted && isAuthenticated && (onAuth || onTerms)) {
-      router.replace('/');
-      return;
-    }
-  }, [isInitialized, isAuthenticated, termsVersion, segments, router, timedOut]);
-
-  // Show splash only while truly loading (with timeout protection)
-  const authReady = isInitialized || timedOut;
-  const termsReady = termsVersion !== 'loading';
-  if (!authReady || !termsReady) {
-    return <SplashScreen />;
-  }
-
+  if (!ready) return <SplashScreen />;
   return null;
 }
 
@@ -155,17 +155,14 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('[App] Database init failed:', error);
       }
-
       try {
-        console.log('[App] Registering for push notifications...');
         await registerForPushNotifications();
-      } catch (error) {
+      } catch {
         console.log('[App] Push notification registration skipped or failed');
       }
     };
     void init();
   }, []);
-
   return <>{children}</>;
 }
 
@@ -237,8 +234,5 @@ const layoutStyles = StyleSheet.create({
     textShadowColor: 'rgba(139,92,246,0.6)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 16,
-  },
-  splashLoader: {
-    marginTop: 8,
   },
 });
