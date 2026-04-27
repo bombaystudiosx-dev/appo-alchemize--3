@@ -278,7 +278,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     }
   }, [authState.user?.id]);
 
-  const value = useMemo(() => ({
+  return {
     user: authState.user,
     token: authState.token,
     isAuthenticated: !!authState.user,
@@ -292,7 +292,5 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     logout,
     setRememberMe,
     deleteAccount,
-  }), [authState, isInitialized, rememberMe, login, signup, loginWithGoogle, loginWithApple, resetPassword, logout, setRememberMe, deleteAccount]);
-
-  return value;
+  };
 });
