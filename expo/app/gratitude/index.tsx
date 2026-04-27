@@ -146,7 +146,13 @@ export default function GratitudeJournalScreen() {
 
   const { data: entries = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['gratitude-entries'],
-    queryFn: () => (Platform.OS === 'web' ? Promise.resolve([]) : gratitudeDb.getAll()),
+    queryFn: () => gratitudeDb.getAll(),
+  });
+
+  const { data: selectedEntry } = useQuery({
+    queryKey: ['gratitude-entry', selectedDate],
+    queryFn: () => gratitudeDb.getByDate(selectedDate),
+    enabled: selectedDate > 0,
   });
 
   useEffect(() => {
@@ -452,58 +458,94 @@ export default function GratitudeJournalScreen() {
               </View>
             </LinearGradient>
 
-            <Animated.View
-              style={[
-                styles.footerSection,
-                {
-                  opacity: emptyFade,
-                  transform: [
-                    {
-                      translateY: emptyFade.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [14, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              <View style={styles.emptyState} testID="gratitude-empty-state">
-                <View style={styles.emptyIconWrap}>
-                  <View style={styles.emptyIconGlow} />
-                  <Heart color="#8F49FF" size={72} strokeWidth={1.8} />
-                </View>
-                <Text style={styles.emptyTitle}>Start your gratitude journey</Text>
-              </View>
-
-              <View style={styles.ctaWrap}>
-                <Animated.View
-                  pointerEvents="none"
-                  style={[
-                    styles.ctaGlow,
-                    {
-                      opacity: ctaGlowOpacity,
-                      transform: [{ scale: ctaGlowScale }],
-                    },
-                  ]}
-                />
-                <TouchableOpacity
-                  activeOpacity={0.92}
-                  onPress={handleOpenAddEntry}
-                  style={styles.ctaTouch}
-                  testID="gratitude-cta-button"
-                >
-                  <LinearGradient
-                    colors={['#9E38FF', '#6E49FF', '#4B73FF']}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={styles.ctaButton}
+            {selectedEntry ? (
+              <View style={styles.entryCard} testID="gratitude-selected-entry">
+                <View style={styles.entryCardHeader}>
+                  <Text style={styles.entryCardDate}>
+                    {new Date(selectedDate).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleOpenAddEntry}
+                    style={styles.entryEditBtn}
+                    activeOpacity={0.8}
+                    testID="gratitude-edit-entry"
                   >
-                    <Text style={styles.ctaText}>Add Your First Entry</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
+                    <Text style={styles.entryEditBtnText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.entryItemRow}>
+                  <Text style={styles.entryItemNum}>1.</Text>
+                  <Text style={styles.entryItemText}>{selectedEntry.gratitude1}</Text>
+                </View>
+                {selectedEntry.gratitude2 ? (
+                  <View style={styles.entryItemRow}>
+                    <Text style={styles.entryItemNum}>2.</Text>
+                    <Text style={styles.entryItemText}>{selectedEntry.gratitude2}</Text>
+                  </View>
+                ) : null}
+                {selectedEntry.gratitude3 ? (
+                  <View style={styles.entryItemRow}>
+                    <Text style={styles.entryItemNum}>3.</Text>
+                    <Text style={styles.entryItemText}>{selectedEntry.gratitude3}</Text>
+                  </View>
+                ) : null}
               </View>
-            </Animated.View>
+            ) : (
+              <Animated.View
+                style={[
+                  styles.footerSection,
+                  {
+                    opacity: emptyFade,
+                    transform: [
+                      {
+                        translateY: emptyFade.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [14, 0],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <View style={styles.emptyState} testID="gratitude-empty-state">
+                  <View style={styles.emptyIconWrap}>
+                    <View style={styles.emptyIconGlow} />
+                    <Heart color="#8F49FF" size={72} strokeWidth={1.8} />
+                  </View>
+                  <Text style={styles.emptyTitle}>No entry for this day</Text>
+                </View>
+
+                <View style={styles.ctaWrap}>
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.ctaGlow,
+                      {
+                        opacity: ctaGlowOpacity,
+                        transform: [{ scale: ctaGlowScale }],
+                      },
+                    ]}
+                  />
+                  <TouchableOpacity
+                    activeOpacity={0.92}
+                    onPress={handleOpenAddEntry}
+                    style={styles.ctaTouch}
+                    testID="gratitude-cta-button"
+                  >
+                    <LinearGradient
+                      colors={['#9E38FF', '#6E49FF', '#4B73FF']}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.ctaButton}
+                    >
+                      <Text style={styles.ctaText}>
+                        {entries.length === 0 ? 'Add Your First Entry' : 'Add Entry for This Day'}
+                      </Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            )}
           </Animated.View>
         </ScrollView>
       </SafeAreaView>
@@ -797,6 +839,60 @@ const styles = StyleSheet.create({
   },
   entryDotSelected: {
     backgroundColor: '#F4C95D',
+  },
+  entryCard: {
+    backgroundColor: 'rgba(63, 25, 102, 0.6)',
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(207,189,255,0.15)',
+  },
+  entryCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  entryCardDate: {
+    flex: 1,
+    color: 'rgba(245,238,255,0.7)',
+    fontSize: 13,
+    fontWeight: '600' as const,
+    letterSpacing: 0.2,
+  },
+  entryEditBtn: {
+    backgroundColor: 'rgba(139,92,246,0.25)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(167,139,250,0.3)',
+  },
+  entryEditBtnText: {
+    color: '#c4b5fd',
+    fontSize: 13,
+    fontWeight: '700' as const,
+  },
+  entryItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+    gap: 10,
+  },
+  entryItemNum: {
+    color: '#F4C95D',
+    fontSize: 15,
+    fontWeight: '800' as const,
+    minWidth: 18,
+    marginTop: 1,
+  },
+  entryItemText: {
+    flex: 1,
+    color: 'rgba(245,238,255,0.9)',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '500' as const,
   },
   footerSection: {
     marginTop: 'auto',

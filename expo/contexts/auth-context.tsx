@@ -35,6 +35,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     token: null,
   });
   const [rememberMe, setRememberMeState] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     void loadAuthState();
@@ -78,6 +79,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     } catch (error) {
       console.error('[Auth] Error loading auth state:', error);
       await AsyncStorage.multiRemove([AUTH_STORAGE_KEY, USERS_STORAGE_KEY, REMEMBER_ME_KEY]).catch(() => {});
+    } finally {
+      setIsInitialized(true);
     }
   };
 
@@ -347,6 +350,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     token: authState.token,
     isAuthenticated: !!authState.user,
     isLoading: false,
+    isInitialized,
     rememberMe,
     login,
     signup,

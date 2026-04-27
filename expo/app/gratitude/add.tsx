@@ -28,16 +28,28 @@ export default function AddGratitudeEntryScreen() {
   const createMutation = useMutation({
     mutationFn: (entry: GratitudeEntry) => gratitudeDb.create(entry),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      console.log('[Gratitude] Entry created successfully');
+      void queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      void queryClient.invalidateQueries({ queryKey: ['gratitude-entry', selectedDate] });
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[Gratitude] Failed to create entry:', error);
+      Alert.alert('Save Failed', 'Could not save your gratitude entry. Please try again.');
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (entry: GratitudeEntry) => gratitudeDb.update(entry),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      console.log('[Gratitude] Entry updated successfully');
+      void queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      void queryClient.invalidateQueries({ queryKey: ['gratitude-entry', selectedDate] });
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[Gratitude] Failed to update entry:', error);
+      Alert.alert('Save Failed', 'Could not update your gratitude entry. Please try again.');
     },
   });
 

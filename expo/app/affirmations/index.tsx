@@ -119,7 +119,7 @@ export default function AffirmationsScreen() {
       ) : isError ? (
         <ErrorState message="Could not load affirmations" onRetry={refetch} />
       ) : (
-      <>
+      <View style={styles.contentWrapper}>
       {todayAffirmation && (
         <View style={styles.todayCard}>
           <Text style={styles.todayLabel}>✨ Today&apos;s Affirmation</Text>
@@ -180,13 +180,15 @@ export default function AffirmationsScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          style={styles.flatList}
+          showsVerticalScrollIndicator={false}
         />
       )}
 
       <TouchableOpacity style={styles.fab} onPress={() => router.push('/affirmations/add' as any)}>
         <Plus color="#fff" size={28} />
       </TouchableOpacity>
-      </>
+      </View>
       )}
       </ImageBackground>
     </View>
@@ -340,6 +342,12 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     padding: 4,
+  },
+  contentWrapper: {
+    flex: 1,
+  },
+  flatList: {
+    flex: 1,
   },
   fab: {
     position: 'absolute',
