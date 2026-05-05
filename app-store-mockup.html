@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alchemize — App Store</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 30% 20%, #2a0060 0%, #0d0020 40%, #000010 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* Starfield */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 45% 10%, rgba(200,180,255,0.9) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 75% 30%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 15%, rgba(180,160,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 75%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 85%, rgba(200,190,255,0.7) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 90% 70%, rgba(255,255,255,0.8) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 50%, rgba(220,200,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(2px 2px at 70% 55%, rgba(167,139,250,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 90%, rgba(200,180,255,0.5) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 36px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .page-header h1 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    color: rgba(167,139,250,0.9);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .page-header p {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e9d5ff, #c084fc, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+
+  .phone-wrap {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 40px 80px rgba(139, 92, 246, 0.45)) drop-shadow(0 0 60px rgba(88, 28, 135, 0.3));
+  }
+
+  .phone {
+    width: 300px;
+    height: 622px;
+    background: linear-gradient(160deg, #2a2a2a 0%, #1a1a1a 30%, #111 60%, #1e1e1e 100%);
+    border-radius: 50px;
+    position: relative;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,0.8),
+      0 0 0 1px rgba(255,255,255,0.06),
+      4px 0 12px rgba(0,0,0,0.5),
+      -4px 0 12px rgba(0,0,0,0.5),
+      0 50px 100px rgba(0,0,0,0.6);
+  }
+
+  .phone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50px;
+    background: linear-gradient(130deg, rgba(255,255,255,0.08) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.04) 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .btn-vol-up {
+    position: absolute;
+    left: -3px;
+    top: 120px;
+    width: 3px;
+    height: 34px;
+    background: linear-gradient(90deg, #222, #3a3a3a);
+    border-radius: 2px 0 0 2px;
+    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+  }
+  .btn-vol-down {
+    position: absolute;
+    left: -3px;
+    top: 165px;
+    width: 3px;
+    height: 34px;
+    background: linear-gradient(90deg, #222, #3a3a3a);
+    border-radius: 2px 0 0 2px;
+    box-shadow: -1px 0 3px rgba(0,0,0,0.5);
+  }
+  .btn-silent {
+    position: absolute;
+    left: -3px;
+    top: 82px;
+    width: 3px;
+    height: 26px;
+    background: linear-gradient(90deg, #222, #3a3a3a);
+    border-radius: 2px 0 0 2px;
+  }
+  .btn-power {
+    position: absolute;
+    right: -3px;
+    top: 140px;
+    width: 3px;
+    height: 56px;
+    background: linear-gradient(270deg, #222, #3a3a3a);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 1px 0 3px rgba(0,0,0,0.5);
+  }
+
+  .screen {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border-radius: 42px;
+    overflow: hidden;
+    background: #1c1c1e;
+  }
+
+  .dynamic-island {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 104px;
+    height: 34px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 20;
+    box-shadow: 0 0 0 1.5px rgba(255,255,255,0.07);
+  }
+
+  .status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 22px 8px;
+    z-index: 15;
+    background: transparent;
+  }
+
+  .status-time {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.3px;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .signal-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+  }
+  .signal-bars span {
+    background: #fff;
+    border-radius: 1px;
+    width: 3px;
+  }
+  .signal-bars span:nth-child(1) { height: 4px; }
+  .signal-bars span:nth-child(2) { height: 6px; }
+  .signal-bars span:nth-child(3) { height: 9px; }
+  .signal-bars span:nth-child(4) { height: 12px; }
+
+  .wifi-icon {
+    width: 16px;
+    height: 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wifi-icon::before {
+    content: ''; position:absolute; width:14px; height:7px;
+    border: 2px solid #fff; border-bottom: none;
+    border-radius: 8px 8px 0 0; top: 0;
+  }
+  .wifi-icon::after {
+    content: ''; position:absolute; width:7px; height:4px;
+    border: 2px solid #fff; border-bottom: none;
+    border-radius: 5px 5px 0 0; top: 4px;
+  }
+  .wifi-dot {
+    width: 3px; height: 3px; background: #fff;
+    border-radius: 50%; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  }
+
+  .battery {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+  }
+  .battery-body {
+    width: 24px;
+    height: 12px;
+    border: 1.5px solid rgba(255,255,255,0.7);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+    padding: 1.5px;
+  }
+  .battery-fill {
+    height: 100%;
+    width: 85%;
+    background: #4ade80;
+    border-radius: 1px;
+  }
+  .battery-tip {
+    width: 2px;
+    height: 5px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 0 1px 1px 0;
+  }
+
+  .app-store {
+    position: absolute;
+    top: 54px;
+    left: 0;
+    right: 0;
+    bottom: 20px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #1c1c1e;
+    scrollbar-width: none;
+  }
+  .app-store::-webkit-scrollbar { display: none; }
+
+  .as-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px 8px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.1);
+  }
+  .as-nav-back {
+    font-size: 15px;
+    color: #0a84ff;
+    font-weight: 400;
+  }
+  .as-nav-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.2px;
+  }
+  .as-nav-share {
+    font-size: 18px;
+    color: #0a84ff;
+  }
+
+  .as-app-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px 12px;
+  }
+
+  .app-icon {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 40%, #7c3aed 70%, #a855f7 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+    overflow: hidden;
+  }
+
+  .app-icon::before {
+    content: '';
+    position: absolute;
+    top: -10px; left: -10px; right: -10px; bottom: -10px;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.25) 0%, transparent 60%);
+  }
+
+  .crystal-ball {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.4) 0%, rgba(167,139,250,0.8) 30%, rgba(109,40,217,0.9) 65%, rgba(60,10,130,0.95) 100%);
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.3);
+  }
+
+  .crystal-ball::before {
+    content: '';
+    position: absolute;
+    top: 6px; left: 8px;
+    width: 14px; height: 10px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    filter: blur(3px);
+  }
+
+  .crystal-sparkle {
+    position: absolute;
+    top: -2px; right: -2px;
+    font-size: 10px;
+    color: #e9d5ff;
+    text-shadow: 0 0 6px rgba(167,139,250,1);
+  }
+
+  .app-info {
+    flex: 1;
+    padding-top: 2px;
+  }
+
+  .app-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.3px;
+    line-height: 1.15;
+    margin-bottom: 3px;
+  }
+
+  .app-dev {
+    font-size: 13px;
+    color: #0a84ff;
+    margin-bottom: 2px;
+    font-weight: 400;
+  }
+
+  .app-cat {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 12px;
+  }
+
+  .get-btn-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .get-btn {
+    background: #0a84ff;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 6px 22px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+
+  .iap-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .stats-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 0.5px solid rgba(255,255,255,0.08);
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    gap: 0;
+  }
+
+  .stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .stat-val {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: -0.3px;
+    line-height: 1;
+  }
+
+  .stat-stars {
+    color: rgba(255,149,0,0.9);
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .stat-rank-label {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.2px;
+  }
+
+  .stat-divider {
+    width: 0.5px;
+    height: 34px;
+    background: rgba(255,255,255,0.1);
+    margin: 0 4px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 6px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.2px;
+  }
+
+  .see-all {
+    font-size: 14px;
+    color: #0a84ff;
+    font-weight: 400;
+  }
+
+  .screenshots {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .screenshots::-webkit-scrollbar { display: none; }
+
+  .screenshot {
+    flex-shrink: 0;
+    width: 110px;
+    height: 195px;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    border: 0.5px solid rgba(255,255,255,0.1);
+  }
+
+  .ss-1 { background: linear-gradient(160deg, #1a0a2e 0%, #4a1570 50%, #6d28d9 100%); }
+  .ss-2 { background: linear-gradient(160deg, #0d1a2e 0%, #1e4a8e 50%, #2563eb 100%); }
+  .ss-3 { background: linear-gradient(160deg, #0a2e1a 0%, #166534 50%, #16a34a 100%); }
+
+  .ss-ui {
+    position: absolute;
+    inset: 0;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ss-title {
+    font-size: 9px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.3px;
+  }
+
+  .ss-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.25);
+  }
+
+  .ss-card {
+    height: 38px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 0.5px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ss-dot-row {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    margin-top: auto;
+  }
+
+  .ss-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+  }
+  .ss-dot.active {
+    background: rgba(255,255,255,0.9);
+    width: 12px;
+    border-radius: 2px;
+  }
+
+  .ss-icon {
+    font-size: 18px;
+    opacity: 0.8;
+  }
+
+  .divider {
+    height: 0.5px;
+    background: rgba(255,255,255,0.08);
+    margin: 0 16px;
+  }
+
+  .description {
+    padding: 0 16px 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .description strong {
+    color: rgba(255,255,255,0.9);
+  }
+
+  .desc-features {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .feat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .feat-dot {
+    color: #a855f7;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .rating-overview {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 0 16px 12px;
+  }
+
+  .big-rating {
+    font-size: 48px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -3px;
+    line-height: 1;
+  }
+
+  .rating-meta {
+    padding-bottom: 6px;
+  }
+
+  .rating-stars {
+    color: rgba(255,149,0,0.9);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .rating-count {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
+
+  .review-card {
+    margin: 0 16px 10px;
+    background: rgba(255,255,255,0.05);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .review-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .review-author {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .review-date {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .review-stars {
+    color: rgba(255,149,0,0.9);
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .review-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .review-text {
+    font-size: 11.5px;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.55;
+  }
+
+  .home-indicator {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 4px;
+    background: rgba(255,255,255,0.35);
+    border-radius: 3px;
+    z-index: 20;
+  }
+
+  .page-footer {
+    margin-top: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .store-badges {
+    display: flex;
+    gap: 14px;
+  }
+
+  .store-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 8px 16px;
+    backdrop-filter: blur(10px);
+  }
+
+  .badge-icon {
+    font-size: 20px;
+  }
+
+  .badge-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .badge-text span:first-child {
+    font-size: 9px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .badge-text span:last-child {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.2px;
+  }
+
+  .footer-tagline {
+    font-size: 12px;
+    color: rgba(167,139,250,0.6);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>NOW AVAILABLE</h1>
+  <p>Alchemize Your Life</p>
+</div>
+
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="btn-silent"></div>
+    <div class="btn-vol-up"></div>
+    <div class="btn-vol-down"></div>
+    <div class="btn-power"></div>
+
+    <div class="screen">
+      <div class="dynamic-island"></div>
+
+      <div class="status-bar">
+        <span class="status-time">9:41</span>
+        <div class="status-icons">
+          <div class="signal-bars">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="wifi-icon">
+            <div class="wifi-dot"></div>
+          </div>
+          <div class="battery">
+            <div class="battery-body"><div class="battery-fill"></div></div>
+            <div class="battery-tip"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-store">
+        <div class="as-nav">
+          <span class="as-nav-back">&#8249; Apps</span>
+          <span class="as-nav-title">App Store</span>
+          <span class="as-nav-share">&#8682;</span>
+        </div>
+
+        <div class="as-app-header">
+          <div class="app-icon">
+            <div class="crystal-ball"></div>
+            <span class="crystal-sparkle">&#10022;</span>
+          </div>
+          <div class="app-info">
+            <div class="app-name">Alchemize</div>
+            <div class="app-dev">Bombay Studios</div>
+            <div class="app-cat">Lifestyle &middot; Self-Improvement</div>
+            <div class="get-btn-row">
+              <div class="get-btn">GET</div>
+              <span class="iap-label">In-App Purchases</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <span class="stat-val">4.9</span>
+            <span class="stat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+            <span class="stat-label">Ratings</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-val">#1</span>
+            <span class="stat-rank-label">Lifestyle</span>
+            <span class="stat-label">Category</span>
+          </div>
+          <div class="stat-divider"></div>
+          <div class="stat">
+            <span class="stat-val">4+</span>
+            <span class="stat-rank-label">Age</span>
+            <span class="stat-label">Rating</span>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">Preview</span>
+        </div>
+
+        <div class="screenshots">
+          <div class="screenshot ss-1">
+            <div class="ss-ui">
+              <div class="ss-title">MANIFESTATION BOARD</div>
+              <div class="ss-bar" style="width:70%"></div>
+              <div class="ss-card"><span class="ss-icon">&#10022;</span></div>
+              <div class="ss-card"><span class="ss-icon">&#128302;</span></div>
+              <div class="ss-dot-row">
+                <div class="ss-dot active"></div>
+                <div class="ss-dot"></div>
+                <div class="ss-dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="screenshot ss-2">
+            <div class="ss-ui">
+              <div class="ss-title">AFFIRMATIONS</div>
+              <div class="ss-bar" style="width:50%"></div>
+              <div class="ss-card" style="height:60px"><span class="ss-icon">&#128171;</span></div>
+              <div class="ss-bar" style="width:80%"></div>
+              <div class="ss-bar" style="width:60%"></div>
+              <div class="ss-dot-row">
+                <div class="ss-dot"></div>
+                <div class="ss-dot active"></div>
+                <div class="ss-dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="screenshot ss-3">
+            <div class="ss-ui">
+              <div class="ss-title">GOALS &amp; HABITS</div>
+              <div class="ss-bar" style="width:65%"></div>
+              <div class="ss-card"><span class="ss-icon">&#127919;</span></div>
+              <div class="ss-card"><span class="ss-icon">&#9889;</span></div>
+              <div class="ss-dot-row">
+                <div class="ss-dot"></div>
+                <div class="ss-dot"></div>
+                <div class="ss-dot active"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-header">
+          <span class="section-title">Description</span>
+        </div>
+        <div class="description">
+          <strong>Transform your reality with Alchemize</strong> &mdash; the all-in-one manifestation &amp; self-mastery app built for those who refuse to settle.
+          <div class="desc-features">
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Manifestation Vision Board</div>
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Daily Affirmations</div>
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Goal Setting &amp; Tracking</div>
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Habit Builder</div>
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Gratitude Journal</div>
+            <div class="feat-item"><span class="feat-dot">&#10022;</span>Fitness &amp; Wellness</div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="section-header">
+          <span class="section-title">Ratings &amp; Reviews</span>
+          <span class="see-all">See All</span>
+        </div>
+
+        <div class="rating-overview">
+          <span class="big-rating">4.9</span>
+          <div class="rating-meta">
+            <div class="rating-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+            <div class="rating-count">2.4K Ratings</div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="review-top">
+            <span class="review-author">manifestation_queen</span>
+            <span class="review-date">Apr 19</span>
+          </div>
+          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <div class="review-title">Life changing app!</div>
+          <div class="review-text">This completely transformed my daily routine. The manifestation board is stunning and I've never felt more aligned.</div>
+        </div>
+
+        <div class="review-card">
+          <div class="review-top">
+            <span class="review-author">cosmic_dreamer7</span>
+            <span class="review-date">Apr 15</span>
+          </div>
+          <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+          <div class="review-title">Best self-improvement app</div>
+          <div class="review-text">I've tried dozens of apps but Alchemize is in a league of its own. The cosmic design is absolutely beautiful.</div>
+        </div>
+
+        <div style="height: 30px;"></div>
+      </div>
+
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+</div>
+
+<div class="page-footer">
+  <div class="store-badges">
+    <div class="store-badge">
+      <span class="badge-icon">&#63743;</span>
+      <div class="badge-text">
+        <span>Download on the</span>
+        <span>App Store</span>
+      </div>
+    </div>
+    <div class="store-badge">
+      <span class="badge-icon">&#9654;</span>
+      <div class="badge-text">
+        <span>Get it on</span>
+        <span>Google Play</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer-tagline">&#10022; alchemize your reality &#10022;</div>
+</div>
+
+</body>
+</html>
