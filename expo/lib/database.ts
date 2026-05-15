@@ -547,6 +547,7 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       gratitude2 TEXT,
       gratitude3 TEXT,
       mood TEXT,
+      dailyReflection TEXT,
       createdAt INTEGER NOT NULL
     );
     
@@ -807,6 +808,17 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
       }
     }
     
+    const gratitudeHasReflection = await checkColumn('gratitude_entries', 'dailyReflection');
+    if (!gratitudeHasReflection) {
+      console.log('[Database] Adding dailyReflection column to gratitude_entries');
+      try {
+        await database.execAsync('ALTER TABLE gratitude_entries ADD COLUMN dailyReflection TEXT');
+        console.log('[Database] Successfully added dailyReflection column');
+      } catch (e) {
+        console.log('[Database] dailyReflection column may already exist:', e);
+      }
+    }
+
     const gratitudeExists = await checkColumn('gratitude_entries', 'id');
     if (gratitudeExists) {
       const gratitudeHasEntryDate = await checkColumn('gratitude_entries', 'entryDate');
@@ -1502,8 +1514,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.createdAt]
+      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, dailyReflection, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.dailyReflection, entry.createdAt]
     );
   },
   
@@ -1511,8 +1523,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ? WHERE id = ? AND userId = ?',
-      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.id, userId]
+      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ?, dailyReflection = ? WHERE id = ? AND userId = ?',
+      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.dailyReflection, entry.id, userId]
     );
   },
   

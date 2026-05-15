@@ -40,7 +40,7 @@ export default function AddGoalScreen() {
       title: title.trim(),
       description: description.trim(),
       targetDate: dueDate ? new Date(dueDate).getTime() : null,
-      status: 'not_started',
+      status: 'in_progress',
       progress: 0,
       streak: 0,
       bestStreak: 0,

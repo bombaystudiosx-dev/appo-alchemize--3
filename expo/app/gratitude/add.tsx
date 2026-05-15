@@ -17,6 +17,7 @@ export default function AddGratitudeEntryScreen() {
   const [gratitude1, setGratitude1] = useState('');
   const [gratitude2, setGratitude2] = useState('');
   const [gratitude3, setGratitude3] = useState('');
+  const [dailyReflection, setDailyReflection] = useState('');
 
   const selectedDate = params.date ? Number(params.date) : new Date().setHours(0, 0, 0, 0);
 
@@ -65,6 +66,7 @@ export default function AddGratitudeEntryScreen() {
         gratitude1: gratitude1.trim(),
         gratitude2: gratitude2.trim() || null,
         gratitude3: gratitude3.trim() || null,
+        dailyReflection: dailyReflection.trim() || null,
       });
     } else {
       createMutation.mutate({
@@ -73,6 +75,7 @@ export default function AddGratitudeEntryScreen() {
         gratitude1: gratitude1.trim(),
         gratitude2: gratitude2.trim() || null,
         gratitude3: gratitude3.trim() || null,
+        dailyReflection: dailyReflection.trim() || null,
         createdAt: Date.now(),
       });
     }
@@ -83,6 +86,7 @@ export default function AddGratitudeEntryScreen() {
       setGratitude1(existingEntry.gratitude1);
       setGratitude2(existingEntry.gratitude2 || '');
       setGratitude3(existingEntry.gratitude3 || '');
+      setDailyReflection(existingEntry.dailyReflection || '');
     }
   }, [existingEntry]);
 
@@ -96,6 +100,8 @@ export default function AddGratitudeEntryScreen() {
     inputBorder: '#2a2a2a',
     placeholder: '#666',
     accent: '#FFD700',
+    reflectionBg: 'rgba(139, 92, 246, 0.06)',
+    reflectionBorder: 'rgba(139, 92, 246, 0.15)',
   } : {
     bg: '#f8f9ff',
     card: '#ffffff',
@@ -106,6 +112,8 @@ export default function AddGratitudeEntryScreen() {
     inputBorder: '#e0e7ff',
     placeholder: '#9ca3af',
     accent: '#FFD700',
+    reflectionBg: 'rgba(139, 92, 246, 0.05)',
+    reflectionBorder: 'rgba(139, 92, 246, 0.12)',
   };
 
   return (
@@ -216,6 +224,38 @@ export default function AddGratitudeEntryScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              returnKeyType="next"
+              blurOnSubmit={false}
+            />
+          </View>
+
+          <View style={[styles.reflectionContainer, { borderColor: colors.border }]}>
+            <Text style={[styles.reflectionTitle, { color: colors.text }]}>
+              Daily Reflection
+            </Text>
+            <Text style={[styles.reflectionSubtitle, { color: colors.textSecondary }]}>
+              What could I have done better today?
+            </Text>
+            <Text style={[styles.reflectionOptional, { color: colors.textSecondary }]}>
+              (optional)
+            </Text>
+            <TextInput
+              style={[
+                styles.input, 
+                styles.textArea,
+                { 
+                  backgroundColor: colors.input, 
+                  borderColor: colors.inputBorder,
+                  color: colors.text 
+                }
+              ]}
+              value={dailyReflection}
+              onChangeText={setDailyReflection}
+              placeholder="Reflect on your day..."
+              placeholderTextColor={colors.placeholder}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
               returnKeyType="done"
               onSubmitEditing={Keyboard.dismiss}
             />
@@ -308,6 +348,29 @@ const styles = StyleSheet.create({
   entriesContainer: {
     gap: 20,
     marginBottom: 24,
+  },
+  reflectionContainer: {
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.15)',
+    marginBottom: 8,
+  },
+  reflectionTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    marginBottom: 6,
+  },
+  reflectionSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  reflectionOptional: {
+    fontSize: 12,
+    fontStyle: 'italic' as const,
+    marginBottom: 12,
   },
   entryGroup: {
     gap: 8,

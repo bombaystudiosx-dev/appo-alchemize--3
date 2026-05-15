@@ -304,8 +304,6 @@ export default function FoodScannerScreen() {
 
   const saveMutation = useMutation({
     mutationFn: async (foods: FoodAnalysis['foods']) => {
-      if (Platform.OS === 'web') return;
-
       const logs: FoodLog[] = foods.map((food) => ({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         foodName: food.name,
@@ -357,10 +355,19 @@ export default function FoodScannerScreen() {
       return logs;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      void queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      void queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[FoodScanner] Save error:', error);
+      Alert.alert(
+        'Save Failed',
+        'Could not save your food log. Please try again.',
+        [{ text: 'OK' }]
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     },
   });
 

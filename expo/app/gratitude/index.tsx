@@ -489,6 +489,14 @@ export default function GratitudeJournalScreen() {
                     <Text style={styles.entryItemText}>{selectedEntry.gratitude3}</Text>
                   </View>
                 ) : null}
+                {selectedEntry.dailyReflection ? (
+                  <View style={styles.reflectionCard}>
+                    <View style={styles.reflectionHeader}>
+                      <Text style={styles.reflectionLabel}>Daily Reflection</Text>
+                    </View>
+                    <Text style={styles.reflectionText}>{selectedEntry.dailyReflection}</Text>
+                  </View>
+                ) : null}
               </View>
             ) : (
               <Animated.View
@@ -893,6 +901,30 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '500' as const,
+  },
+  reflectionCard: {
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  reflectionHeader: {
+    marginBottom: 8,
+  },
+  reflectionLabel: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: '#a78bfa',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  reflectionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(245,238,255,0.85)',
+    fontStyle: 'italic' as const,
   },
   footerSection: {
     marginTop: 'auto',
