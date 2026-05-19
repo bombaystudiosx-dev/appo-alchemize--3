@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import NetworkBanner from '@/components/NetworkBanner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { TERMS_ACCEPTED_KEY, TERMS_VERSION } from '@/app/terms';
+import OnboardingOverlay from '@/components/OnboardingOverlay';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,19 +32,29 @@ const queryClient = new QueryClient({
   },
 });
 
-function BackButton() {
+function FloatingBackButton() {
   const router = useRouter();
   const navState = useRootNavigationState();
-  const canGoBack = (navState?.routes?.length ?? 0) > 1;
-  if (!canGoBack) return null;
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const canGoBack = (navState?.routes?.length ?? 0) > 1;
+    setVisible(canGoBack);
+  }, [navState]);
+
+  if (!visible) return null;
+
   return (
     <TouchableOpacity
       onPress={() => router.back()}
-      style={layoutStyles.backButton}
+      style={layoutStyles.floatingBackButton}
       activeOpacity={0.7}
+      testID="floating-back-button"
     >
-      <ChevronLeft color="#ffffff" size={18} strokeWidth={2.5} />
-      <Text style={layoutStyles.backButtonText}>Back</Text>
+      <View style={layoutStyles.floatingBackInner}>
+        <ChevronLeft color="#ffffff" size={20} strokeWidth={2.5} />
+        <Text style={layoutStyles.floatingBackText}>Back</Text>
+      </View>
     </TouchableOpacity>
   );
 }
@@ -177,6 +189,8 @@ export default function RootLayout() {
                 <AppInitializer>
                   <NetworkBanner />
                   <NavigationGuard />
+                  <FloatingBackButton />
+                  <OnboardingOverlay />
                   <Stack
                     screenOptions={{
                       headerShown: false,
@@ -204,16 +218,31 @@ export default function RootLayout() {
 }
 
 const layoutStyles = StyleSheet.create({
-  backButton: {
+  floatingBackButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 52 : 16,
+    left: 16,
+    zIndex: 50,
+  },
+  floatingBackInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 6,
-    paddingRight: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(20, 12, 40, 0.72)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.25)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  backButtonText: {
+  floatingBackText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600' as const,
   },
   splash: {

@@ -42,6 +42,8 @@ import {
   Bell,
   CalendarDays,
   Star,
+  MessageCircle,
+  Send,
 } from 'lucide-react-native';
 import * as StoreReview from 'expo-store-review';
 import * as ImagePicker from 'expo-image-picker';
@@ -107,6 +109,10 @@ export default function SettingsScreen() {
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>({});
   const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [supportSubject, setSupportSubject] = useState('');
+  const [supportMessage, setSupportMessage] = useState('');
+  const [supportSending, setSupportSending] = useState(false);
 
   const [healthKitModalVisible, setHealthKitModalVisible] = useState(false);
   const [healthKitPermissions, setHealthKitPermissions] = useState<HealthKitPermissions | null>(null);
@@ -914,10 +920,28 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       )}
 
+      {/* SUPPORT Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>SUPPORT</Text>
+        <TouchableOpacity style={styles.settingRow} onPress={() => setSupportModalVisible(true)}>
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <MessageCircle color="#10b981" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Customer Support</Text>
+              <Text style={styles.settingSubtitle}>Report bugs or send feedback</Text>
+            </View>
+          </View>
+          <ChevronRight color="#666" size={20} />
+        </TouchableOpacity>
+      </View>
+
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerVersion}>Alchemize v{APP_VERSION}</Text>
         <Text style={styles.footerMade}>Made with ✨ and 💜</Text>
+        <Text style={styles.footerPoweredBy}>Powered by Metallic.v1</Text>
       </View>
 
       {/* Permission Needed Modal */}
@@ -1457,6 +1481,79 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Support Modal */}
+      <Modal
+        visible={supportModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSupportModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.supportModal}>
+            <View style={styles.supportModalHeader}>
+              <Text style={styles.supportModalTitle}>Customer Support</Text>
+              <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
+                <X color="#fff" size={24} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.supportModalScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.supportModalBody}>
+                Report a bug, suggest a feature, or send us feedback. We read every message.
+              </Text>
+              <Text style={styles.supportLabel}>Subject</Text>
+              <TextInput
+                style={styles.supportInput}
+                value={supportSubject}
+                onChangeText={setSupportSubject}
+                placeholder="e.g. App crashes when adding a goal"
+                placeholderTextColor="#666"
+                autoCapitalize="sentences"
+              />
+              <Text style={styles.supportLabel}>Message</Text>
+              <TextInput
+                style={[styles.supportInput, styles.supportTextArea]}
+                value={supportMessage}
+                onChangeText={setSupportMessage}
+                placeholder="Describe the issue or your feedback..."
+                placeholderTextColor="#666"
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+              <TouchableOpacity
+                style={[styles.supportSendButton, (!supportSubject.trim() || !supportMessage.trim() || supportSending) && styles.supportSendButtonDisabled]}
+                onPress={async () => {
+                  if (!supportSubject.trim() || !supportMessage.trim()) return;
+                  setSupportSending(true);
+                  try {
+                    const body = `Subject: ${supportSubject.trim()}\n\nMessage:\n${supportMessage.trim()}\n\nApp Version: ${APP_VERSION}\nPlatform: ${Platform.OS}`;
+                    const mailto = `mailto:support@alchemize.app?subject=${encodeURIComponent(supportSubject.trim())}&body=${encodeURIComponent(body)}`;
+                    const canOpen = await Linking.canOpenURL(mailto);
+                    if (canOpen) {
+                      await Linking.openURL(mailto);
+                    } else {
+                      Alert.alert('Contact Us', 'Please email support@alchemize.app with your feedback.');
+                    }
+                    setSupportModalVisible(false);
+                    setSupportSubject('');
+                    setSupportMessage('');
+                  } catch (error) {
+                    console.error('[Settings] Support email error:', error);
+                    Alert.alert('Error', 'Could not open email client. Please contact support@alchemize.app');
+                  } finally {
+                    setSupportSending(false);
+                  }
+                }}
+                disabled={!supportSubject.trim() || !supportMessage.trim() || supportSending}
+              >
+                <Send color="#fff" size={18} />
+                <Text style={styles.supportSendText}>{supportSending ? 'Opening...' : 'Send Feedback'}</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       </ScrollView>
     </View>
   );
@@ -1631,6 +1728,80 @@ const styles = StyleSheet.create({
   footerMade: {
     fontSize: 13,
     color: '#888',
+  },
+  footerPoweredBy: {
+    fontSize: 11,
+    color: 'rgba(139,92,246,0.4)',
+    fontWeight: '500' as const,
+    letterSpacing: 0.8,
+    marginTop: 8,
+  },
+  supportModal: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 24,
+    padding: 24,
+    width: '90%',
+    maxWidth: 380,
+    maxHeight: '80%',
+  },
+  supportModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  supportModalTitle: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  supportModalScroll: {
+    maxHeight: 400,
+  },
+  supportModalBody: {
+    fontSize: 14,
+    color: '#aaa',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  supportLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#888',
+    marginBottom: 8,
+    marginTop: 12,
+  },
+  supportInput: {
+    backgroundColor: '#0f0f0f',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  supportTextArea: {
+    minHeight: 120,
+    paddingTop: 14,
+  },
+  supportSendButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#8b5cf6',
+    borderRadius: 14,
+    paddingVertical: 16,
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  supportSendButtonDisabled: {
+    opacity: 0.4,
+  },
+  supportSendText: {
+    fontSize: 15,
+    fontWeight: '700' as const,
+    color: '#fff',
   },
   modalOverlay: {
     flex: 1,

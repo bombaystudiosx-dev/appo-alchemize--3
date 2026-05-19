@@ -181,7 +181,8 @@ export default function TodosScreen() {
     setShowTimePicker(false);
     if (selectedTime && selectedTaskForDate) {
       const timeString = `${selectedTime.getHours().toString().padStart(2, '0')}:${selectedTime.getMinutes().toString().padStart(2, '0')}`;
-      
+
+      // Cancel existing notification if time changes
       if (selectedTaskForDate.notificationId) {
         await cancelNotification(selectedTaskForDate.notificationId);
       }
@@ -190,11 +191,15 @@ export default function TodosScreen() {
         ...selectedTaskForDate,
         dueTime: timeString,
         updatedAt: Date.now(),
+        notificationId: null,
       };
 
-      const notificationId = await scheduleNotification(updatedTask);
-      if (notificationId) {
-        updatedTask.notificationId = notificationId;
+      // Re-schedule notification if reminders are enabled
+      if (updatedTask.reminderEnabled && updatedTask.dueDate) {
+        const notificationId = await scheduleNotification(updatedTask);
+        if (notificationId) {
+          updatedTask.notificationId = notificationId;
+        }
       }
 
       updateMutation.mutate(updatedTask);
@@ -211,7 +216,7 @@ export default function TodosScreen() {
       await cancelNotification(task.notificationId);
     }
 
-    const updatedTask: Task = {
+    let updatedTask: Task = {
       ...task,
       reminderEnabled: newReminderState,
       notificationId: newReminderState ? task.notificationId : null,
@@ -221,7 +226,7 @@ export default function TodosScreen() {
     if (newReminderState && task.dueDate) {
       const notificationId = await scheduleNotification(updatedTask);
       if (notificationId) {
-        updatedTask.notificationId = notificationId;
+        updatedTask = { ...updatedTask, notificationId };
       }
     }
 

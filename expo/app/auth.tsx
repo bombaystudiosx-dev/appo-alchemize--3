@@ -368,9 +368,7 @@ export default function AuthScreen() {
                 {termsAgreed && <Text style={styles.termsCheckmark}>✓</Text>}
               </Animated.View>
               <Text style={styles.termsLabel}>
-                I agree to the{' '}
-                <Text style={styles.termsLabelBold}>Terms & Agreement</Text>
-                {' '}and Privacy Policy
+                I agree to the <Text style={styles.termsLabelBold}>Terms & Conditions</Text> and <Text style={styles.termsLabelBold}>Privacy Policy</Text>.
               </Text>
             </TouchableOpacity>
 
@@ -429,7 +427,6 @@ export default function AuthScreen() {
             </View>
           </View>
 
-          <Text style={styles.poweredBy}>Powered by Metallic.v1</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -722,21 +719,12 @@ const styles = StyleSheet.create({
   },
   termsLabel: {
     flex: 1,
-    fontSize: 12,
-    color: 'rgba(196,181,253,0.65)',
-    lineHeight: 18,
+    fontSize: 13,
+    color: 'rgba(220,210,255,0.9)',
+    lineHeight: 20,
   },
   termsLabelBold: {
     fontWeight: '700' as const,
     color: '#c4b5fd',
-  },
-  poweredBy: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: 'rgba(139,92,246,0.35)',
-    fontWeight: '500' as const,
-    letterSpacing: 0.8,
-    marginTop: 14,
-    marginBottom: 4,
   },
 });
