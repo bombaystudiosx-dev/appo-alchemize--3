@@ -1,5 +1,5 @@
 import type { WorkoutTemplate, WorkoutSession, NormalizedMetric, Award, FitnessPlan } from '@/types';
-import { workoutTemplatesDb, awardsDb } from '@/lib/database';
+import { workoutTemplatesDb, awardsDb, getCurrentUserId } from '@/lib/database';
 
 export const WORKOUT_TEMPLATES: Omit<WorkoutTemplate, 'id'>[] = [
   { title: 'Morning Stretch', category: 'stretch', durationMinutes: 10, intensity: 'low', equipment: 'none', description: 'Gentle full-body stretching to start your day' },
@@ -37,12 +37,12 @@ export const WORKOUT_TEMPLATES: Omit<WorkoutTemplate, 'id'>[] = [
 export async function seedWorkoutTemplates() {
   const existing = await workoutTemplatesDb.getAll();
   if (existing.length > 0) return;
-  
+
   for (const template of WORKOUT_TEMPLATES) {
     await workoutTemplatesDb.create({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       ...template,
-    });
+    } as any);
   }
 }
 
@@ -59,12 +59,12 @@ export async function seedAwards() {
     { code: 'WORKOUTS_100', title: 'Century Club', description: 'Complete 100 workouts', earnedAt: null },
     { code: 'VARIETY_5', title: 'Variety Seeker', description: 'Try 5 different workout categories', earnedAt: null },
   ];
-  
+
   for (const award of awards) {
     await awardsDb.create({
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
       ...award,
-    });
+    } as any);
   }
 }
 

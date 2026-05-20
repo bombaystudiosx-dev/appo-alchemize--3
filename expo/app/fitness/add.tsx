@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, Zap } from 'lucide-react-native';
+import { Sparkles, Zap, AlertCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
 import { workoutsDb } from '@/lib/database';
 import type { Workout } from '@/types';
+
+const RORK_API_KEY = process.env.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY ?? '';
+if (!RORK_API_KEY) {
+  console.warn('[FitnessAI] EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY is not set. AI workout estimation may not work correctly.');
+}
 
 const CalorieEstimateSchema = z.object({
   estimatedCalories: z.number().describe('Estimated calories burned during the workout'),

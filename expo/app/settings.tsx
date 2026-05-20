@@ -935,6 +935,19 @@ export default function SettingsScreen() {
           </View>
           <ChevronRight color="#666" size={20} />
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/support-chat' as any)}>
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
+              <Wrench color="#a78bfa" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>AI Repair Assistant</Text>
+              <Text style={styles.settingSubtitle}>Diagnose and fix app issues instantly</Text>
+            </View>
+          </View>
+          <ChevronRight color="#666" size={20} />
+        </TouchableOpacity>
       </View>
 
       {/* Footer */}

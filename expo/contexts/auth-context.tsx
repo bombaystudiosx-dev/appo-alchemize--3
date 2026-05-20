@@ -92,7 +92,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     void loadAuthState();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, _rememberMe?: boolean) => {
     try {
       const usersData = await AsyncStorage.getItem(USERS_STORAGE_KEY);
       const users: StoredUser[] = usersData ? JSON.parse(usersData) : [];
@@ -104,6 +104,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
       await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
       await setCurrentUserId(user.id);
       setAuthState(authData);
+      if (_rememberMe) {
+        await AsyncStorage.setItem(REMEMBER_ME_KEY, 'true');
+        setRememberMeState(true);
+      }
       console.log('[Auth] Login successful:', email);
       return { success: true };
     } catch (error) {
