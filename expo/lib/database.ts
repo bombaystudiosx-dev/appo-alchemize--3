@@ -726,11 +726,14 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
     }
 
     let failedTables = 0;
-    for (const stmt of SCHEMA_STATEMENTS) {
+    for (let i = 0; i < SCHEMA_STATEMENTS.length; i++) {
+      const stmt = SCHEMA_STATEMENTS[i];
+      const firstLine = stmt.split('\n')[0].trim();
       try {
         await initializedDb.execAsync(stmt);
       } catch (stmtError) {
-        console.error('[Database] Failed to create table:', stmt.split('\n')[0].trim(), stmtError);
+        console.error(`[Database] Failed to create table #${i} (${firstLine}):`, stmtError);
+        console.error('[Database] Offending SQL:\n', stmt);
         failedTables++;
       }
     }
@@ -848,15 +851,24 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
       const gratitudeHasEntryDate = await checkColumn('gratitude_entries', 'entryDate');
       const hasDateColumn = await checkColumn('gratitude_entries', 'date');
       
+      const runSafe = async (label: string, sql: string) => {
+        try {
+          await database.execAsync(sql);
+        } catch (e) {
+          console.error(`[Database] Migration step failed (${label}):`, e, '\nSQL:', sql);
+          throw e;
+        }
+      };
+
       if (!gratitudeHasEntryDate && hasDateColumn) {
         console.log('[Database] Migrating gratitude_entries: date -> entryDate');
         try {
-          await database.execAsync('ALTER TABLE gratitude_entries RENAME COLUMN date TO entryDate;');
+          await runSafe('rename date->entryDate', 'ALTER TABLE gratitude_entries RENAME COLUMN date TO entryDate;');
           console.log('[Database] Successfully renamed date to entryDate');
         } catch (renameError) {
-          console.error('[Database] Failed to rename column, attempting workaround:', renameError);
-          await database.execAsync(`
-            CREATE TABLE gratitude_entries_new (
+          console.error('[Database] Falling back to table recreation:', renameError);
+          try { await runSafe('drop gratitude_new', 'DROP TABLE IF EXISTS gratitude_entries_new;'); } catch {}
+          await runSafe('create gratitude_new', `CREATE TABLE gratitude_entries_new (
               id TEXT PRIMARY KEY,
               entryDate INTEGER NOT NULL,
               gratitude1 TEXT NOT NULL,
@@ -864,17 +876,20 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
               gratitude3 TEXT,
               mood TEXT,
               createdAt INTEGER NOT NULL
-            );
-            INSERT INTO gratitude_entries_new SELECT id, date as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;
-            DROP TABLE gratitude_entries;
-            ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;
-          `);
+            );`);
+          try {
+            await runSafe('copy gratitude data', 'INSERT INTO gratitude_entries_new SELECT id, date as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;');
+          } catch (copyErr) {
+            console.warn('[Database] Could not copy gratitude rows (continuing):', copyErr);
+          }
+          await runSafe('drop old gratitude', 'DROP TABLE gratitude_entries;');
+          await runSafe('rename gratitude_new', 'ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;');
           console.log('[Database] Successfully migrated via table recreation');
         }
       } else if (!gratitudeHasEntryDate && !hasDateColumn) {
         console.log('[Database] gratitude_entries missing entryDate column - rebuilding table');
-        await database.execAsync(`
-          CREATE TABLE gratitude_entries_new (
+        try { await runSafe('drop gratitude_new', 'DROP TABLE IF EXISTS gratitude_entries_new;'); } catch {}
+        await runSafe('create gratitude_new', `CREATE TABLE gratitude_entries_new (
             id TEXT PRIMARY KEY,
             entryDate INTEGER NOT NULL,
             gratitude1 TEXT NOT NULL,
@@ -882,21 +897,20 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
             gratitude3 TEXT,
             mood TEXT,
             createdAt INTEGER NOT NULL
-          );
-        `);
-        
+          );`);
+
         const hasData = await database.getFirstAsync('SELECT COUNT(*) as count FROM gratitude_entries');
         if (hasData && (hasData as any).count > 0) {
           console.log('[Database] Attempting to preserve existing data');
           try {
-            await database.execAsync('INSERT INTO gratitude_entries_new SELECT id, createdAt as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries');
+            await runSafe('preserve gratitude data', 'INSERT INTO gratitude_entries_new SELECT id, createdAt as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;');
           } catch (e) {
             console.error('[Database] Could not preserve data:', e);
           }
         }
-        
-        await database.execAsync('DROP TABLE gratitude_entries');
-        await database.execAsync('ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries');
+
+        await runSafe('drop gratitude', 'DROP TABLE gratitude_entries;');
+        await runSafe('rename gratitude_new', 'ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;');
         console.log('[Database] Table rebuilt with entryDate column');
       }
     }
@@ -966,32 +980,21 @@ export async function resetDatabase() {
     return;
   }
   const database = await ensureDatabase();
-  await database.execAsync(`
-    DELETE FROM user_profile;
-    DELETE FROM manifestations;
-    DELETE FROM goals;
-    DELETE FROM goal_checklist_items;
-    DELETE FROM habits;
-    DELETE FROM habit_completions;
-    DELETE FROM transactions;
-    DELETE FROM financial_income;
-    DELETE FROM financial_expenses;
-    DELETE FROM financial_notes;
-    DELETE FROM meals;
-    DELETE FROM food_logs;
-    DELETE FROM saved_foods;
-    DELETE FROM nutrition_goals;
-    DELETE FROM planned_meals;
-    DELETE FROM tasks;
-    DELETE FROM gratitude_entries;
-    DELETE FROM affirmations;
-    DELETE FROM workouts;
-    DELETE FROM body_metrics;
-    DELETE FROM appointments;
-    DELETE FROM user_nutrition_profiles;
-    DELETE FROM water_logs;
-    DELETE FROM meal_prep_plans;
-  `);
+  const tablesToWipe = [
+    'user_profile', 'manifestations', 'goals', 'goal_checklist_items',
+    'habits', 'habit_completions', 'transactions', 'financial_income',
+    'financial_expenses', 'financial_notes', 'meals', 'food_logs',
+    'saved_foods', 'nutrition_goals', 'planned_meals', 'tasks',
+    'gratitude_entries', 'affirmations', 'workouts', 'body_metrics',
+    'appointments', 'user_nutrition_profiles', 'water_logs', 'meal_prep_plans',
+  ];
+  for (const table of tablesToWipe) {
+    try {
+      await database.execAsync(`DELETE FROM ${table};`);
+    } catch (e) {
+      console.warn(`[Database] Could not clear ${table}:`, e);
+    }
+  }
   console.log('Database reset');
 }
 
