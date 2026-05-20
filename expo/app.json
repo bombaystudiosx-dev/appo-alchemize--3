@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Alchemize",
-    "slug": "alchemize-repo",
+    "slug": "alchemize",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -25,7 +25,10 @@
       "bundleIdentifier": "app.repo.alchemize-level-up",
       "buildNumber": "1",
       "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
+        "com.apple.developer.applesignin": [
+          "Default",
+          "Default"
+        ]
       },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Alchemize uses your photo library to set your profile photo and add images to your manifestation board.",
@@ -37,21 +40,46 @@
         "NSCalendarsUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event.",
         "NSCalendarsFullAccessUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event.",
         "NSMotionUsageDescription": "Alchemize uses motion sensors to create an immersive parallax effect on the home screen.",
-        "NSLocationWhenInUseUsageDescription": "Alchemize may use your location to provide relevant local context for your goals and appointments."
+        "NSLocationWhenInUseUsageDescription": "Alchemize may use your location to provide relevant local context for your goals and appointments.",
+        "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
-            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
-            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
           }
         ]
       }
@@ -62,15 +90,15 @@
         "backgroundColor": "#0c0520"
       },
       "package": "com.crfenterprise.alchemize",
-      "versionCode": 1,
+      "versionCode": 2,
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.VIBRATE",
-        "RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {

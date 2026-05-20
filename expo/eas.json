@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 14.0.0"
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -26,13 +27,19 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "internetkartel@icloud.com",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "frcenterprise333@gmail.com",
+        "ascAppId": "db94fcff-20b7-4e3d-bed5-4848e5ad0fa0",
+        "appleTeamId": "YUFRU9JZ64"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",
         "track": "production"
+      }
+    },
+    "testflight": {
+      "ios": {
+        "appleId": "frcenterprise333@gmail.com",
+        "appleTeamId": "YUFRU9JZ64"
       }
     }
   }
