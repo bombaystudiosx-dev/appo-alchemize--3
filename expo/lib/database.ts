@@ -697,10 +697,19 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   dbInitPromise = (async () => {
     try {
       db = await SQLite.openDatabaseAsync('alchemize.db');
-    } catch (error) {
-      console.error('[Database] Failed to open database:', error);
-      dbInitPromise = null;
-      throw error;
+    } catch (openError) {
+      console.warn('[Database] First open attempt failed, trying recovery:', openError);
+      try {
+        const fileSystem = await import('expo-file-system');
+        const dbPath = `${fileSystem.documentDirectory ?? ''}SQLite/alchemize.db`;
+        await fileSystem.deleteAsync(dbPath, { idempotent: true });
+        console.log('[Database] Deleted corrupted DB file, retrying open');
+        db = await SQLite.openDatabaseAsync('alchemize.db');
+      } catch (retryError) {
+        console.error('[Database] Failed to open database after recovery attempt:', retryError);
+        dbInitPromise = null;
+        throw retryError;
+      }
     }
     return db;
   })();

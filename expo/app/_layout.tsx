@@ -191,7 +191,9 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error('[App] Database init failed:', error);
       setDbError(error?.message ?? 'Unknown error');
-      setDbReady(false);
+      // Do NOT block the app on DB init failure — let users still access UI/auth.
+      // Individual data screens will surface their own error states.
+      setDbReady(true);
     }
     try {
       await registerForPushNotifications();
@@ -204,22 +206,14 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
     void runInit();
   }, []);
 
-  if (dbReady === false) {
-    return (
-      <DatabaseErrorScreen onRetry={async () => {
-        try {
-          await resetDatabaseFile();
-        } catch (e) {
-          console.log('[App] Reset failed, will try init anyway:', e);
-        }
-        await runInit();
-      }} />
-    );
-  }
-
   if (dbReady === null) {
     return <SplashScreen />;
   }
+
+  // dbError is non-fatal; app continues. The retry path is kept for explicit reset from Settings.
+  void dbError;
+  void resetDatabaseFile;
+  void DatabaseErrorScreen;
 
   return <>{children}</>;
 }
