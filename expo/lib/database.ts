@@ -290,15 +290,410 @@ export function getCurrentUserId(): string | null {
   return currentUserId;
 }
 
+const SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS user_profile (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    fullName TEXT NOT NULL,
+    email TEXT NOT NULL,
+    totalXp INTEGER NOT NULL DEFAULT 0,
+    totalEnergy INTEGER NOT NULL DEFAULT 0,
+    currentStreak INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS manifestations (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    category TEXT NOT NULL,
+    intention TEXT NOT NULL,
+    images TEXT NOT NULL,
+    isFavorite INTEGER NOT NULL DEFAULT 0,
+    orderIndex INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS goals (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    targetDate INTEGER,
+    status TEXT NOT NULL,
+    progress INTEGER NOT NULL DEFAULT 0,
+    streak INTEGER NOT NULL DEFAULT 0,
+    bestStreak INTEGER NOT NULL DEFAULT 0,
+    lastCompletedDate INTEGER,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS goal_checklist_items (
+    id TEXT PRIMARY KEY,
+    goalId TEXT NOT NULL,
+    text TEXT NOT NULL,
+    isDone INTEGER NOT NULL,
+    FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
+  );`,
+  `CREATE TABLE IF NOT EXISTS goal_completions (
+    id TEXT PRIMARY KEY,
+    goalId TEXT NOT NULL,
+    completionDate INTEGER NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    completedAt INTEGER NOT NULL,
+    FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
+  );`,
+  `CREATE TABLE IF NOT EXISTS habits (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL DEFAULT '✨',
+    goal INTEGER NOT NULL DEFAULT 1,
+    goalUnit TEXT,
+    type TEXT NOT NULL DEFAULT 'checkbox',
+    frequencyType TEXT NOT NULL,
+    customDays TEXT NOT NULL,
+    currentProgress INTEGER NOT NULL DEFAULT 0,
+    streak INTEGER NOT NULL DEFAULT 0,
+    xpReward INTEGER NOT NULL DEFAULT 5,
+    energyReward INTEGER NOT NULL DEFAULT 1,
+    color TEXT NOT NULL DEFAULT '#6366f1',
+    lastCompletedDate TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS habit_completions (
+    id TEXT PRIMARY KEY,
+    habitId TEXT NOT NULL,
+    completionDate INTEGER NOT NULL,
+    value INTEGER NOT NULL DEFAULT 1,
+    notes TEXT NOT NULL DEFAULT '',
+    completedAt INTEGER NOT NULL,
+    FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
+  );`,
+  `CREATE TABLE IF NOT EXISTS transactions (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    category TEXT NOT NULL,
+    note TEXT NOT NULL,
+    dayOfWeek INTEGER,
+    time TEXT,
+    reminderEnabled INTEGER NOT NULL DEFAULT 0,
+    reminderTime INTEGER,
+    isRecurring INTEGER NOT NULL DEFAULT 0
+  );`,
+  `CREATE TABLE IF NOT EXISTS financial_income (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    incomeGross REAL NOT NULL,
+    incomeNet REAL NOT NULL,
+    taxAmount REAL NOT NULL DEFAULT 0,
+    taxPercentage REAL NOT NULL DEFAULT 0,
+    deductions REAL NOT NULL DEFAULT 0,
+    incomeCategory TEXT NOT NULL,
+    incomeDate INTEGER NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS financial_expenses (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    expenseName TEXT NOT NULL,
+    expenseAmount REAL NOT NULL,
+    expenseCategory TEXT NOT NULL,
+    expenseDate INTEGER NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS financial_notes (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    noteLoginInfo TEXT NOT NULL DEFAULT '',
+    noteTotalDebt TEXT NOT NULL DEFAULT '',
+    debtAmount REAL NOT NULL DEFAULT 0,
+    debtDueDate INTEGER,
+    savingsAmount REAL NOT NULL DEFAULT 0,
+    emergencyFund REAL NOT NULL DEFAULT 0,
+    savingsNotes TEXT NOT NULL DEFAULT '',
+    updatedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS meals (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    calories REAL NOT NULL,
+    protein REAL,
+    carbs REAL,
+    fat REAL,
+    notes TEXT NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS food_logs (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    foodName TEXT NOT NULL,
+    servingDescription TEXT NOT NULL DEFAULT '',
+    calories REAL NOT NULL,
+    proteinGrams REAL,
+    carbGrams REAL,
+    fatGrams REAL,
+    sugarGrams REAL,
+    fiberGrams REAL,
+    mealType TEXT NOT NULL,
+    sourceType TEXT NOT NULL DEFAULT 'manual',
+    loggedAt INTEGER NOT NULL,
+    isLocked INTEGER NOT NULL DEFAULT 1,
+    calendarEventId TEXT
+  );`,
+  `CREATE TABLE IF NOT EXISTS saved_foods (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    foodName TEXT NOT NULL,
+    servingDescription TEXT NOT NULL DEFAULT '',
+    calories REAL NOT NULL,
+    proteinGrams REAL,
+    carbGrams REAL,
+    fatGrams REAL,
+    sugarGrams REAL,
+    fiberGrams REAL,
+    tags TEXT NOT NULL DEFAULT '[]',
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS nutrition_goals (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    dailyCalories INTEGER NOT NULL DEFAULT 2000,
+    dailyProtein INTEGER NOT NULL DEFAULT 150,
+    dailyCarbs INTEGER NOT NULL DEFAULT 250,
+    dailyFat INTEGER NOT NULL DEFAULT 65,
+    dailySugar INTEGER NOT NULL DEFAULT 50,
+    dailyFiber INTEGER NOT NULL DEFAULT 30,
+    updatedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS planned_meals (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    slot TEXT NOT NULL,
+    name TEXT NOT NULL,
+    notes TEXT NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    notes TEXT NOT NULL,
+    dueDate INTEGER,
+    dueTime TEXT,
+    isDone INTEGER NOT NULL,
+    orderIndex INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    completedDate INTEGER,
+    reminderEnabled INTEGER NOT NULL DEFAULT 0,
+    reminderTime INTEGER,
+    notificationId TEXT,
+    priority TEXT
+  );`,
+  `CREATE TABLE IF NOT EXISTS gratitude_entries (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    entryDate INTEGER NOT NULL,
+    gratitude1 TEXT NOT NULL,
+    gratitude2 TEXT,
+    gratitude3 TEXT,
+    mood TEXT,
+    dailyReflection TEXT,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS affirmations (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    text TEXT NOT NULL,
+    category TEXT NOT NULL,
+    isFavorite INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS workouts (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    type TEXT NOT NULL,
+    durationMinutes INTEGER NOT NULL,
+    caloriesBurned INTEGER,
+    notes TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS body_metrics (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    weight REAL,
+    waist REAL,
+    chest REAL,
+    hips REAL,
+    arms REAL,
+    thighs REAL,
+    bodyFatPercentage REAL,
+    muscleMass REAL,
+    notes TEXT NOT NULL DEFAULT '',
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS appointments (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    date INTEGER NOT NULL,
+    time TEXT NOT NULL,
+    category TEXT NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    reminder INTEGER NOT NULL DEFAULT 1,
+    createdAt INTEGER NOT NULL,
+    metadata TEXT
+  );`,
+  `CREATE TABLE IF NOT EXISTS user_nutrition_profiles (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    height REAL NOT NULL,
+    heightUnit TEXT NOT NULL DEFAULT 'cm',
+    weight REAL NOT NULL,
+    weightUnit TEXT NOT NULL DEFAULT 'kg',
+    targetWeight REAL NOT NULL,
+    age INTEGER NOT NULL,
+    gender TEXT NOT NULL,
+    activityLevel TEXT NOT NULL,
+    goal TEXT NOT NULL,
+    weeklyGoal REAL NOT NULL DEFAULT 0.5,
+    dailyCalorieTarget INTEGER NOT NULL DEFAULT 2000,
+    dailyProteinTarget INTEGER NOT NULL DEFAULT 150,
+    dailyCarbsTarget INTEGER NOT NULL DEFAULT 250,
+    dailyFatTarget INTEGER NOT NULL DEFAULT 65,
+    dailyWaterTarget INTEGER NOT NULL DEFAULT 2000,
+    dailyFiberTarget INTEGER NOT NULL DEFAULT 25,
+    manualMacros INTEGER NOT NULL DEFAULT 0,
+    updatedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS water_logs (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    amount REAL NOT NULL,
+    unit TEXT NOT NULL DEFAULT 'ml',
+    loggedAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS meal_prep_plans (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    weekStartDate INTEGER NOT NULL,
+    dayOfWeek INTEGER NOT NULL,
+    mealType TEXT NOT NULL,
+    foodName TEXT NOT NULL,
+    calories REAL NOT NULL,
+    protein REAL,
+    carbs REAL,
+    fat REAL,
+    servingSize TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    isCompleted INTEGER NOT NULL DEFAULT 0,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS fitness_goals (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    metric TEXT NOT NULL,
+    dailyTarget INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS workout_templates (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL,
+    durationMinutes INTEGER NOT NULL,
+    intensity TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    description TEXT NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS workout_sessions (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    templateId TEXT NOT NULL,
+    startedAt INTEGER NOT NULL,
+    endedAt INTEGER,
+    durationMinutes INTEGER NOT NULL,
+    completed INTEGER NOT NULL,
+    caloriesEstimate INTEGER,
+    source TEXT NOT NULL,
+    FOREIGN KEY (templateId) REFERENCES workout_templates(id) ON DELETE CASCADE
+  );`,
+  `CREATE TABLE IF NOT EXISTS normalized_metrics (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    date TEXT NOT NULL,
+    activeMinutes INTEGER NOT NULL DEFAULT 0,
+    caloriesActive INTEGER NOT NULL DEFAULT 0,
+    steps INTEGER NOT NULL DEFAULT 0,
+    source TEXT NOT NULL,
+    deviceType TEXT NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS fitness_plans (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    daysPerWeek INTEGER NOT NULL,
+    preferredCategories TEXT NOT NULL,
+    durationRangeMin INTEGER NOT NULL,
+    durationRangeMax INTEGER NOT NULL,
+    intensity TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    active INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );`,
+  `CREATE TABLE IF NOT EXISTS awards (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    earnedAt INTEGER
+  );`,
+];
+
+export async function resetDatabaseFile(): Promise<void> {
+  if (Platform.OS === 'web') {
+    Object.keys(webStore).forEach(key => { webStore[key] = []; });
+    console.log('[Database] Web store reset');
+    return;
+  }
+  try {
+    if (db) {
+      await db.closeAsync();
+      db = null;
+    }
+  } catch (e) {
+    console.log('[Database] Error closing DB before reset:', e);
+  }
+  dbInitPromise = null;
+  try {
+    const dbDir = `${SQLite.SQLiteDatabase.defaultDatabaseDirectory ?? 'SQLite'}`;
+    const fileSystem = await import('expo-file-system');
+    const dbPath = `${fileSystem.documentDirectory ?? ''}SQLite/alchemize.db`;
+    await fileSystem.deleteAsync(dbPath, { idempotent: true });
+    console.log('[Database] Deleted database file');
+  } catch (e) {
+    console.log('[Database] Could not delete DB file (may not exist):', e);
+  }
+}
+
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   if (db) return db;
   if (dbInitPromise) return dbInitPromise;
-  
+
   if (Platform.OS === 'web') {
     console.log('[Database] Disabled on web - using memory-only mode');
     return null;
   }
-  
+
   dbInitPromise = (async () => {
     try {
       db = await SQLite.openDatabaseAsync('alchemize.db');
@@ -311,418 +706,38 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   })();
   await dbInitPromise;
   if (!db) throw new Error('Database failed to open');
-  const initializedDb = db as SQLite.SQLiteDatabase;
-  
+  const initializedDb = db;
+
   try {
-    await initializedDb.execAsync('PRAGMA journal_mode = WAL;');
-    
-    await initializedDb.execAsync(`
-      CREATE TABLE IF NOT EXISTS user_profile (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      fullName TEXT NOT NULL,
-      email TEXT NOT NULL,
-      totalXp INTEGER NOT NULL DEFAULT 0,
-      totalEnergy INTEGER NOT NULL DEFAULT 0,
-      currentStreak INTEGER NOT NULL DEFAULT 0,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS manifestations (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      category TEXT NOT NULL,
-      intention TEXT NOT NULL,
-      images TEXT NOT NULL,
-      isFavorite INTEGER NOT NULL DEFAULT 0,
-      orderIndex INTEGER NOT NULL DEFAULT 0,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS goals (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      targetDate INTEGER,
-      status TEXT NOT NULL,
-      progress INTEGER NOT NULL DEFAULT 0,
-      streak INTEGER NOT NULL DEFAULT 0,
-      bestStreak INTEGER NOT NULL DEFAULT 0,
-      lastCompletedDate INTEGER,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS goal_checklist_items (
-      id TEXT PRIMARY KEY,
-      goalId TEXT NOT NULL,
-      text TEXT NOT NULL,
-      isDone INTEGER NOT NULL,
-      FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
-    );
-    
-    CREATE TABLE IF NOT EXISTS goal_completions (
-      id TEXT PRIMARY KEY,
-      goalId TEXT NOT NULL,
-      completionDate INTEGER NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      completedAt INTEGER NOT NULL,
-      FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
-    );
-    
-    CREATE TABLE IF NOT EXISTS habits (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      icon TEXT NOT NULL DEFAULT '✨',
-      goal INTEGER NOT NULL DEFAULT 1,
-      goalUnit TEXT,
-      type TEXT NOT NULL DEFAULT 'checkbox',
-      frequencyType TEXT NOT NULL,
-      customDays TEXT NOT NULL,
-      currentProgress INTEGER NOT NULL DEFAULT 0,
-      streak INTEGER NOT NULL DEFAULT 0,
-      xpReward INTEGER NOT NULL DEFAULT 5,
-      energyReward INTEGER NOT NULL DEFAULT 1,
-      color TEXT NOT NULL DEFAULT '#6366f1',
-      lastCompletedDate TEXT NOT NULL DEFAULT '',
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS habit_completions (
-      id TEXT PRIMARY KEY,
-      habitId TEXT NOT NULL,
-      completionDate INTEGER NOT NULL,
-      value INTEGER NOT NULL DEFAULT 1,
-      notes TEXT NOT NULL DEFAULT '',
-      completedAt INTEGER NOT NULL,
-      FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
-    );
-    
-    CREATE TABLE IF NOT EXISTS transactions (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      amount REAL NOT NULL,
-      category TEXT NOT NULL,
-      note TEXT NOT NULL,
-      dayOfWeek INTEGER,
-      time TEXT,
-      reminderEnabled INTEGER NOT NULL DEFAULT 0,
-      reminderTime INTEGER,
-      isRecurring INTEGER NOT NULL DEFAULT 0
-    );
-    
-    CREATE TABLE IF NOT EXISTS financial_income (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      incomeGross REAL NOT NULL,
-      incomeNet REAL NOT NULL,
-      taxAmount REAL NOT NULL DEFAULT 0,
-      taxPercentage REAL NOT NULL DEFAULT 0,
-      deductions REAL NOT NULL DEFAULT 0,
-      incomeCategory TEXT NOT NULL,
-      incomeDate INTEGER NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS financial_expenses (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      expenseName TEXT NOT NULL,
-      expenseAmount REAL NOT NULL,
-      expenseCategory TEXT NOT NULL,
-      expenseDate INTEGER NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS financial_notes (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      noteLoginInfo TEXT NOT NULL DEFAULT '',
-      noteTotalDebt TEXT NOT NULL DEFAULT '',
-      debtAmount REAL NOT NULL DEFAULT 0,
-      debtDueDate INTEGER,
-      savingsAmount REAL NOT NULL DEFAULT 0,
-      emergencyFund REAL NOT NULL DEFAULT 0,
-      savingsNotes TEXT NOT NULL DEFAULT '',
-      updatedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS meals (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      name TEXT NOT NULL,
-      calories REAL NOT NULL,
-      protein REAL,
-      carbs REAL,
-      fat REAL,
-      notes TEXT NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS food_logs (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      foodName TEXT NOT NULL,
-      servingDescription TEXT NOT NULL DEFAULT '',
-      calories REAL NOT NULL,
-      proteinGrams REAL,
-      carbGrams REAL,
-      fatGrams REAL,
-      sugarGrams REAL,
-      fiberGrams REAL,
-      mealType TEXT NOT NULL,
-      sourceType TEXT NOT NULL DEFAULT 'manual',
-      loggedAt INTEGER NOT NULL,
-      isLocked INTEGER NOT NULL DEFAULT 1,
-      calendarEventId TEXT
-    );
-    
-    CREATE TABLE IF NOT EXISTS saved_foods (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      foodName TEXT NOT NULL,
-      servingDescription TEXT NOT NULL DEFAULT '',
-      calories REAL NOT NULL,
-      proteinGrams REAL,
-      carbGrams REAL,
-      fatGrams REAL,
-      sugarGrams REAL,
-      fiberGrams REAL,
-      tags TEXT NOT NULL DEFAULT '[]',
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS nutrition_goals (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      dailyCalories INTEGER NOT NULL DEFAULT 2000,
-      dailyProtein INTEGER NOT NULL DEFAULT 150,
-      dailyCarbs INTEGER NOT NULL DEFAULT 250,
-      dailyFat INTEGER NOT NULL DEFAULT 65,
-      dailySugar INTEGER NOT NULL DEFAULT 50,
-      dailyFiber INTEGER NOT NULL DEFAULT 30,
-      updatedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS planned_meals (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      slot TEXT NOT NULL,
-      name TEXT NOT NULL,
-      notes TEXT NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS tasks (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      title TEXT NOT NULL,
-      notes TEXT NOT NULL,
-      dueDate INTEGER,
-      dueTime TEXT,
-      isDone INTEGER NOT NULL,
-      orderIndex INTEGER NOT NULL DEFAULT 0,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL,
-      completedDate INTEGER,
-      reminderEnabled INTEGER NOT NULL DEFAULT 0,
-      reminderTime INTEGER,
-      notificationId TEXT,
-      priority TEXT
-    );
-    
-    CREATE TABLE IF NOT EXISTS gratitude_entries (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      entryDate INTEGER NOT NULL,
-      gratitude1 TEXT NOT NULL,
-      gratitude2 TEXT,
-      gratitude3 TEXT,
-      mood TEXT,
-      dailyReflection TEXT,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS affirmations (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      text TEXT NOT NULL,
-      category TEXT NOT NULL,
-      isFavorite INTEGER NOT NULL,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS workouts (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      type TEXT NOT NULL,
-      durationMinutes INTEGER NOT NULL,
-      caloriesBurned INTEGER,
-      notes TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS body_metrics (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      weight REAL,
-      waist REAL,
-      chest REAL,
-      hips REAL,
-      arms REAL,
-      thighs REAL,
-      bodyFatPercentage REAL,
-      muscleMass REAL,
-      notes TEXT NOT NULL DEFAULT '',
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS appointments (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      title TEXT NOT NULL,
-      date INTEGER NOT NULL,
-      time TEXT NOT NULL,
-      category TEXT NOT NULL,
-      notes TEXT NOT NULL DEFAULT '',
-      reminder INTEGER NOT NULL DEFAULT 1,
-      createdAt INTEGER NOT NULL,
-      metadata TEXT
-    );
-    
-    CREATE TABLE IF NOT EXISTS user_nutrition_profiles (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      height REAL NOT NULL,
-      heightUnit TEXT NOT NULL DEFAULT 'cm',
-      weight REAL NOT NULL,
-      weightUnit TEXT NOT NULL DEFAULT 'kg',
-      targetWeight REAL NOT NULL,
-      age INTEGER NOT NULL,
-      gender TEXT NOT NULL,
-      activityLevel TEXT NOT NULL,
-      goal TEXT NOT NULL,
-      weeklyGoal REAL NOT NULL DEFAULT 0.5,
-      dailyCalorieTarget INTEGER NOT NULL DEFAULT 2000,
-      dailyProteinTarget INTEGER NOT NULL DEFAULT 150,
-      dailyCarbsTarget INTEGER NOT NULL DEFAULT 250,
-      dailyFatTarget INTEGER NOT NULL DEFAULT 65,
-      dailyWaterTarget INTEGER NOT NULL DEFAULT 2000,
-      dailyFiberTarget INTEGER NOT NULL DEFAULT 25,
-      manualMacros INTEGER NOT NULL DEFAULT 0,
-      updatedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS water_logs (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      amount REAL NOT NULL,
-      unit TEXT NOT NULL DEFAULT 'ml',
-      loggedAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS meal_prep_plans (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      weekStartDate INTEGER NOT NULL,
-      dayOfWeek INTEGER NOT NULL,
-      mealType TEXT NOT NULL,
-      foodName TEXT NOT NULL,
-      calories REAL NOT NULL,
-      protein REAL,
-      carbs REAL,
-      fat REAL,
-      servingSize TEXT NOT NULL DEFAULT '',
-      notes TEXT NOT NULL DEFAULT '',
-      isCompleted INTEGER NOT NULL DEFAULT 0,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS fitness_goals (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      metric TEXT NOT NULL,
-      dailyTarget INTEGER NOT NULL,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS workout_templates (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      title TEXT NOT NULL,
-      category TEXT NOT NULL,
-      durationMinutes INTEGER NOT NULL,
-      intensity TEXT NOT NULL,
-      equipment TEXT NOT NULL,
-      description TEXT NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS workout_sessions (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      templateId TEXT NOT NULL,
-      startedAt INTEGER NOT NULL,
-      endedAt INTEGER,
-      durationMinutes INTEGER NOT NULL,
-      completed INTEGER NOT NULL,
-      caloriesEstimate INTEGER,
-      source TEXT NOT NULL,
-      FOREIGN KEY (templateId) REFERENCES workout_templates(id) ON DELETE CASCADE
-    );
-    
-    CREATE TABLE IF NOT EXISTS normalized_metrics (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      date TEXT NOT NULL,
-      activeMinutes INTEGER NOT NULL DEFAULT 0,
-      caloriesActive INTEGER NOT NULL DEFAULT 0,
-      steps INTEGER NOT NULL DEFAULT 0,
-      source TEXT NOT NULL,
-      deviceType TEXT NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS fitness_plans (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      daysPerWeek INTEGER NOT NULL,
-      preferredCategories TEXT NOT NULL,
-      durationRangeMin INTEGER NOT NULL,
-      durationRangeMax INTEGER NOT NULL,
-      intensity TEXT NOT NULL,
-      equipment TEXT NOT NULL,
-      active INTEGER NOT NULL,
-      createdAt INTEGER NOT NULL
-    );
-    
-    CREATE TABLE IF NOT EXISTS awards (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      code TEXT NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT NOT NULL,
-      earnedAt INTEGER
-    );
-    `);
-    
-    console.log('[Database] Tables created successfully');
-    
+    try {
+      await initializedDb.execAsync('PRAGMA journal_mode = WAL;');
+      console.log('[Database] WAL mode enabled');
+    } catch (walError) {
+      console.warn('[Database] WAL mode not available (non-fatal):', walError);
+    }
+
+    let failedTables = 0;
+    for (const stmt of SCHEMA_STATEMENTS) {
+      try {
+        await initializedDb.execAsync(stmt);
+      } catch (stmtError) {
+        console.error('[Database] Failed to create table:', stmt.split('\n')[0].trim(), stmtError);
+        failedTables++;
+      }
+    }
+
+    if (failedTables > 0) {
+      console.warn(`[Database] ${failedTables} table(s) failed to create`);
+    } else {
+      console.log('[Database] All tables created successfully');
+    }
+
     if (db) await runMigrations(db);
   } catch (error) {
-    console.error('[Database] Failed to create tables:', error);
+    console.error('[Database] Failed during schema setup:', error);
     throw error;
   }
-  
+
   console.log('[Database] Initialized successfully');
   return db;
 }

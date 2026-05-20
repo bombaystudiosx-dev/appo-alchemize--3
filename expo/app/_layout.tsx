@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import { initDatabase } from '@/lib/database';
+import { initDatabase, resetDatabaseFile } from '@/lib/database';
 import NetworkBanner from '@/components/NetworkBanner';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { registerForPushNotifications } from '@/lib/notifications';
@@ -156,24 +156,71 @@ function NavigationGuard() {
   return null;
 }
 
+function DatabaseErrorScreen({ onRetry }: { onRetry: () => void }) {
+  return (
+    <View style={layoutStyles.splash}>
+      <LinearGradient
+        colors={['#080214', '#0c0520', '#10062a']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      <View style={layoutStyles.splashContent}>
+        <Text style={[layoutStyles.splashTitle, { fontSize: 24 }]}>Database Error</Text>
+        <Text style={{ color: '#a78bfa', fontSize: 14, textAlign: 'center', marginTop: 12, maxWidth: 280 }}>
+          Unable to initialize the local database. This may be due to a corrupted database file.
+        </Text>
+        <TouchableOpacity onPress={onRetry} style={layoutStyles.retryButton} activeOpacity={0.7}>
+          <Text style={layoutStyles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 function AppInitializer({ children }: { children: React.ReactNode }) {
+  const [dbReady, setDbReady] = useState<boolean | null>(null);
+  const [dbError, setDbError] = useState<string | null>(null);
+
+  const runInit = async () => {
+    setDbReady(null);
+    setDbError(null);
+    try {
+      console.log('[App] Initializing database...');
+      await initDatabase();
+      console.log('[App] Database ready');
+      setDbReady(true);
+    } catch (error: any) {
+      console.error('[App] Database init failed:', error);
+      setDbError(error?.message ?? 'Unknown error');
+      setDbReady(false);
+    }
+    try {
+      await registerForPushNotifications();
+    } catch {
+      console.log('[App] Push notification registration skipped or failed');
+    }
+  };
+
   useEffect(() => {
-    const init = async () => {
-      try {
-        console.log('[App] Initializing database...');
-        await initDatabase();
-        console.log('[App] Database ready');
-      } catch (error) {
-        console.error('[App] Database init failed:', error);
-      }
-      try {
-        await registerForPushNotifications();
-      } catch {
-        console.log('[App] Push notification registration skipped or failed');
-      }
-    };
-    void init();
+    void runInit();
   }, []);
+
+  if (dbReady === false) {
+    return (
+      <DatabaseErrorScreen onRetry={async () => {
+        try {
+          await resetDatabaseFile();
+        } catch (e) {
+          console.log('[App] Reset failed, will try init anyway:', e);
+        }
+        await runInit();
+      }} />
+    );
+  }
+
+  if (dbReady === null) {
+    return <SplashScreen />;
+  }
+
   return <>{children}</>;
 }
 
@@ -256,5 +303,19 @@ const layoutStyles = StyleSheet.create({
     textShadowColor: 'rgba(139,92,246,0.6)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 16,
+  },
+  retryButton: {
+    marginTop: 24,
+    backgroundColor: 'rgba(139, 92, 246, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.5)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
+  retryText: {
+    color: '#e2d9f3',
+    fontSize: 16,
+    fontWeight: '600' as const,
   },
 });
