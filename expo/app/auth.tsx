@@ -719,6 +719,7 @@ const styles = StyleSheet.create({
   },
   termsLabel: {
     flex: 1,
+    flexShrink: 1,
     fontSize: 13,
     color: 'rgba(220,210,255,0.9)',
     lineHeight: 20,

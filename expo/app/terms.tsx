@@ -208,8 +208,6 @@ export default function TermsScreen() {
           <Text style={styles.versionNote}>
             Terms version {TERMS_VERSION} · Effective April 2026
           </Text>
-
-          <Text style={styles.poweredBy}>Powered by Metallic.v1</Text>
         </View>
 
         <View style={styles.bottomSpacer} />
@@ -459,13 +457,5 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 20,
-  },
-  poweredBy: {
-    textAlign: 'center',
-    fontSize: 11,
-    color: 'rgba(139,92,246,0.35)',
-    fontWeight: '500' as const,
-    letterSpacing: 0.8,
-    marginTop: 8,
   },
 });

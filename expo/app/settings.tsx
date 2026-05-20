@@ -44,6 +44,7 @@ import {
   Star,
   MessageCircle,
   Send,
+  Wrench,
 } from 'lucide-react-native';
 import * as StoreReview from 'expo-store-review';
 import * as ImagePicker from 'expo-image-picker';
@@ -110,7 +111,7 @@ export default function SettingsScreen() {
   const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>({});
   const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
-  const [supportSubject, setSupportSubject] = useState('');
+  const [supportIssueType, setSupportIssueType] = useState<'Bug' | 'Problem' | 'Feature Request' | 'Other'>('Bug');
   const [supportMessage, setSupportMessage] = useState('');
   const [supportSending, setSupportSending] = useState(false);
 
@@ -954,7 +955,7 @@ export default function SettingsScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerVersion}>Alchemize v{APP_VERSION}</Text>
         <Text style={styles.footerMade}>Made with ✨ and 💜</Text>
-        <Text style={styles.footerPoweredBy}>Powered by Metallic.v1</Text>
+        <Text style={styles.footerPoweredBy}>Powered by metallic.v1</Text>
       </View>
 
       {/* Permission Needed Modal */}
@@ -1514,15 +1515,19 @@ export default function SettingsScreen() {
               <Text style={styles.supportModalBody}>
                 Report a bug, suggest a feature, or send us feedback. We read every message.
               </Text>
-              <Text style={styles.supportLabel}>Subject</Text>
-              <TextInput
-                style={styles.supportInput}
-                value={supportSubject}
-                onChangeText={setSupportSubject}
-                placeholder="e.g. App crashes when adding a goal"
-                placeholderTextColor="#666"
-                autoCapitalize="sentences"
-              />
+              <Text style={styles.supportLabel}>Issue Type</Text>
+              <View style={styles.issueTypeRow}>
+                {(['Bug', 'Problem', 'Feature Request', 'Other'] as const).map((type) => (
+                  <TouchableOpacity
+                    key={type}
+                    style={[styles.issueTypeChip, supportIssueType === type && styles.issueTypeChipActive]}
+                    onPress={() => setSupportIssueType(type)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[styles.issueTypeChipText, supportIssueType === type && styles.issueTypeChipTextActive]}>{type}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <Text style={styles.supportLabel}>Message</Text>
               <TextInput
                 style={[styles.supportInput, styles.supportTextArea]}
@@ -1535,13 +1540,14 @@ export default function SettingsScreen() {
                 textAlignVertical="top"
               />
               <TouchableOpacity
-                style={[styles.supportSendButton, (!supportSubject.trim() || !supportMessage.trim() || supportSending) && styles.supportSendButtonDisabled]}
+                style={[styles.supportSendButton, (!supportMessage.trim() || supportSending) && styles.supportSendButtonDisabled]}
                 onPress={async () => {
-                  if (!supportSubject.trim() || !supportMessage.trim()) return;
+                  if (!supportMessage.trim()) return;
                   setSupportSending(true);
                   try {
-                    const body = `Subject: ${supportSubject.trim()}\n\nMessage:\n${supportMessage.trim()}\n\nApp Version: ${APP_VERSION}\nPlatform: ${Platform.OS}`;
-                    const mailto = `mailto:support@alchemize.app?subject=${encodeURIComponent(supportSubject.trim())}&body=${encodeURIComponent(body)}`;
+                    const subject = `[${supportIssueType}] Alchemize Support`;
+                    const body = `Issue Type: ${supportIssueType}\n\nMessage:\n${supportMessage.trim()}\n\nApp Version: ${APP_VERSION}\nPlatform: ${Platform.OS}`;
+                    const mailto = `mailto:support@alchemize.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
                     const canOpen = await Linking.canOpenURL(mailto);
                     if (canOpen) {
                       await Linking.openURL(mailto);
@@ -1549,7 +1555,7 @@ export default function SettingsScreen() {
                       Alert.alert('Contact Us', 'Please email support@alchemize.app with your feedback.');
                     }
                     setSupportModalVisible(false);
-                    setSupportSubject('');
+                    setSupportIssueType('Bug');
                     setSupportMessage('');
                   } catch (error) {
                     console.error('[Settings] Support email error:', error);
@@ -1558,7 +1564,7 @@ export default function SettingsScreen() {
                     setSupportSending(false);
                   }
                 }}
-                disabled={!supportSubject.trim() || !supportMessage.trim() || supportSending}
+                disabled={!supportMessage.trim() || supportSending}
               >
                 <Send color="#fff" size={18} />
                 <Text style={styles.supportSendText}>{supportSending ? 'Opening...' : 'Send Feedback'}</Text>
@@ -1796,6 +1802,32 @@ const styles = StyleSheet.create({
   supportTextArea: {
     minHeight: 120,
     paddingTop: 14,
+  },
+  issueTypeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
+  issueTypeChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#0f0f0f',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  issueTypeChipActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: '#8b5cf6',
+  },
+  issueTypeChipText: {
+    fontSize: 13,
+    color: '#aaa',
+    fontWeight: '600' as const,
+  },
+  issueTypeChipTextActive: {
+    color: '#fff',
   },
   supportSendButton: {
     flexDirection: 'row',

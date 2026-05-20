@@ -11,7 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ChevronLeft, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react-native';
 
-const ONBOARDING_KEY = '@alchemize_onboarding_seen';
+const ONBOARDING_KEY = '@alchemize_navigation_onboarding_seen';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface OnboardingStep {

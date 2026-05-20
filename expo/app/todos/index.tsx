@@ -76,7 +76,19 @@ export default function TodosScreen() {
     },
   });
 
-  const scheduleNotification = async (task: Task) => {
+  const getTaskDueAt = (task: Task): number | null => {
+    if (!task.dueDate) return null;
+    const due = new Date(task.dueDate);
+    if (task.dueTime) {
+      const [h, m] = task.dueTime.split(':').map(Number);
+      due.setHours(h, m, 0, 0);
+    } else {
+      due.setHours(23, 59, 59, 999);
+    }
+    return due.getTime();
+  };
+
+  const scheduleNotification = async (task: Task): Promise<{ notificationId: string; reminderTime: number } | null> => {
     if (Platform.OS === 'web') return null;
 
     if (!task.dueDate || !task.reminderEnabled) return null;
@@ -88,13 +100,10 @@ export default function TodosScreen() {
         return null;
       }
 
-      const dueDate = new Date(task.dueDate);
-      if (task.dueTime) {
-        const [hours, minutes] = task.dueTime.split(':');
-        dueDate.setHours(parseInt(hours), parseInt(minutes));
-      }
+      const dueAt = getTaskDueAt(task);
+      if (!dueAt) return null;
 
-      const reminderTime = new Date(dueDate.getTime() - 15 * 60 * 1000);
+      const reminderTime = new Date(dueAt - 15 * 60 * 1000);
 
       if (reminderTime.getTime() <= Date.now()) {
         return null;
@@ -109,7 +118,7 @@ export default function TodosScreen() {
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderTime },
       });
 
-      return notificationId;
+      return { notificationId, reminderTime: reminderTime.getTime() };
     } catch (error) {
       console.error('Failed to schedule notification:', error);
       return null;
@@ -196,9 +205,10 @@ export default function TodosScreen() {
 
       // Re-schedule notification if reminders are enabled
       if (updatedTask.reminderEnabled && updatedTask.dueDate) {
-        const notificationId = await scheduleNotification(updatedTask);
-        if (notificationId) {
-          updatedTask.notificationId = notificationId;
+        const result = await scheduleNotification(updatedTask);
+        if (result) {
+          updatedTask.notificationId = result.notificationId;
+          updatedTask.reminderTime = result.reminderTime;
         }
       }
 
@@ -224,9 +234,9 @@ export default function TodosScreen() {
     };
 
     if (newReminderState && task.dueDate) {
-      const notificationId = await scheduleNotification(updatedTask);
-      if (notificationId) {
-        updatedTask = { ...updatedTask, notificationId };
+      const result = await scheduleNotification(updatedTask);
+      if (result) {
+        updatedTask = { ...updatedTask, notificationId: result.notificationId, reminderTime: result.reminderTime };
       }
     }
 
@@ -284,16 +294,17 @@ export default function TodosScreen() {
   };
 
   const isTaskOverdue = (task: Task) => {
-    if (!task.dueDate || task.isDone) return false;
-    const now = Date.now();
-    const due = task.dueDate;
-    return due < now;
+    if (task.isDone) return false;
+    const due = getTaskDueAt(task);
+    if (!due) return false;
+    return due < Date.now();
   };
 
   const isTaskDueSoon = (task: Task) => {
-    if (!task.dueDate || task.isDone) return false;
+    if (task.isDone) return false;
+    const due = getTaskDueAt(task);
+    if (!due) return false;
     const now = Date.now();
-    const due = task.dueDate;
     const hourInMs = 60 * 60 * 1000;
     return due > now && due < now + (24 * hourInMs);
   };

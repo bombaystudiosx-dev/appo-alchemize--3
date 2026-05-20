@@ -234,8 +234,9 @@ export default function RootLayout() {
                   <Stack
                     screenOptions={{
                       headerShown: false,
+                      gestureEnabled: true,
                       contentStyle: { backgroundColor: '#080214' },
-                      animation: 'fade',
+                      animation: 'slide_from_right',
                     }}
                   >
                     <Stack.Screen name="index" />
