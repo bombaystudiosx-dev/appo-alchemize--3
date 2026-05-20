@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sparkles, Zap, AlertCircle } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
@@ -22,6 +23,7 @@ const CalorieEstimateSchema = z.object({
 
 export default function AddWorkoutScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   const [type, setType] = useState<'cardio' | 'strength' | 'yoga' | 'hiit' | 'stretching' | 'sports' | 'other'>('cardio');
@@ -97,8 +99,13 @@ Provide an estimated calorie burn based on this information. Consider typical me
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.label}>Workout Type</Text>
         <View style={styles.typeContainer}>
           {(['cardio', 'strength', 'yoga', 'hiit', 'stretching', 'sports', 'other'] as const).map((t) => (
@@ -211,7 +218,7 @@ Provide an estimated calorie burn based on this information. Consider typical me
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

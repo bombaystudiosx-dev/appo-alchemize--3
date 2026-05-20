@@ -11,6 +11,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -486,7 +487,7 @@ export default function FoodScannerScreen() {
 
   if (capturedImage && (analysis || analyzeMutation.isPending)) {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <LinearGradient
           colors={['#0a0a0f', '#0d0d15', '#0a0a0f']}
           style={StyleSheet.absoluteFill}
@@ -516,6 +517,7 @@ export default function FoodScannerScreen() {
           style={styles.resultsScroll}
           contentContainerStyle={[styles.resultsContent, { paddingBottom: insets.bottom + 110 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imagePreviewContainer}>
             <Image source={{ uri: capturedImage }} style={styles.previewImage} contentFit="cover" />
@@ -929,7 +931,7 @@ export default function FoodScannerScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 

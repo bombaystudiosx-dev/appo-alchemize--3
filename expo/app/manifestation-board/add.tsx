@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -244,6 +245,7 @@ export default function AddManifestationScreen() {
         colors={['#1a0a3e', '#0c0520', '#0d1033']}
         style={styles.background}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -364,6 +366,7 @@ export default function AddManifestationScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
 
       <Modal

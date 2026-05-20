@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Lock, CreditCard, PiggyBank } from 'lucide-react-native';
 import { financialNoteDb } from '@/lib/database';
@@ -8,6 +9,7 @@ import type { FinancialNote } from '@/types';
 
 export default function FinancialNotesScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const params = useLocalSearchParams();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -83,11 +85,13 @@ export default function FinancialNotesScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView 
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
         ref={scrollViewRef}
-        style={styles.scrollView} 
-        contentContainerStyle={styles.content}
+        style={styles.scrollView}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View 
           style={styles.section}
@@ -225,7 +229,7 @@ export default function FinancialNotesScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -239,7 +243,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
   },
   section: {
     marginBottom: 32,

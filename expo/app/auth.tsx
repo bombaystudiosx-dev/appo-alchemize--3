@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Mail, Lock, User, Eye, EyeOff, Globe, ChevronRight } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -74,6 +75,7 @@ const TRANSLATIONS = {
 
 export default function AuthScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { login, signup, loginWithApple, loginWithGoogle, resetPassword } = useAuth();
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -217,7 +219,7 @@ export default function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 16 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -478,7 +480,7 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     justifyContent: 'flex-end',
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    paddingBottom: 0,
   },
   spacer: {
     flex: 1,

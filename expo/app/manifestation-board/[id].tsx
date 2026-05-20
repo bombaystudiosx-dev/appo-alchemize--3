@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Text, Dimensions, TouchableOpacity, TextInput, Alert, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Text, Dimensions, TouchableOpacity, TextInput, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -178,7 +178,7 @@ export default function ManifestationDetailScreen() {
 
   if (isEditing) {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <LinearGradient colors={['#1a0a3e', '#0c0520', '#0d1033']} style={styles.background}>
           <View style={styles.editHeader}>
             <TouchableOpacity style={styles.headerBtn} onPress={() => setIsEditing(false)}>
@@ -191,7 +191,7 @@ export default function ManifestationDetailScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.scrollView} contentContainerStyle={styles.editContent}>
+          <ScrollView style={styles.scrollView} contentContainerStyle={styles.editContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.editLabel}>Title</Text>
             <TextInput
               style={styles.editInput}
@@ -251,7 +251,7 @@ export default function ManifestationDetailScreen() {
             )}
           </ScrollView>
         </LinearGradient>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
