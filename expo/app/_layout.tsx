@@ -48,12 +48,11 @@ function FloatingBackButton() {
     <TouchableOpacity
       onPress={() => router.back()}
       style={layoutStyles.floatingBackButton}
-      activeOpacity={0.7}
+      activeOpacity={0.6}
       testID="floating-back-button"
     >
       <View style={layoutStyles.floatingBackInner}>
-        <ChevronLeft color="#ffffff" size={20} strokeWidth={2.5} />
-        <Text style={layoutStyles.floatingBackText}>Back</Text>
+        <ChevronLeft color="#e2d9f3" size={22} strokeWidth={2} />
       </View>
     </TouchableOpacity>
   );
@@ -220,30 +219,24 @@ export default function RootLayout() {
 const layoutStyles = StyleSheet.create({
   floatingBackButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 52 : 16,
-    left: 16,
+    top: Platform.OS === 'ios' ? 54 : 20,
+    left: 12,
     zIndex: 50,
   },
   floatingBackInner: {
-    flexDirection: 'row',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(20, 12, 40, 0.72)',
-    borderRadius: 24,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(16, 8, 32, 0.55)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.25)',
+    borderColor: 'rgba(139, 92, 246, 0.18)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  floatingBackText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600' as const,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   splash: {
     flex: 1,
