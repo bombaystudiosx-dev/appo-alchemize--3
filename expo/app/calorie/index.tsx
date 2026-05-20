@@ -253,11 +253,12 @@ export default function CalorieTrackerScreen() {
         resizeMode="cover"
       >
         <View style={styles.overlay} />
-        <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-      >
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.dateSelector}>
           <TouchableOpacity onPress={() => navigateDate(-1)} style={styles.dateArrow}>
             <ChevronLeft size={22} color="#fff" />

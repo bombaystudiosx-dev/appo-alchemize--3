@@ -8,8 +8,8 @@ import {
   Dimensions,
   Animated,
   Alert,
-  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -25,6 +25,7 @@ export const TERMS_VERSION = '1.0.0';
 
 export default function TermsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,7 +89,7 @@ export default function TermsScreen() {
         keyboardShouldPersistTaps="handled"
         testID="terms-scroll"
       >
-        <View style={styles.brandRow}>
+        <View style={[styles.brandRow, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.brandTitle}>Alchemize</Text>
           <Text style={styles.brandSub}>Terms & Privacy Agreement</Text>
         </View>
@@ -279,7 +280,6 @@ const styles = StyleSheet.create({
   },
   brandRow: {
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 64 : 48,
     paddingBottom: 16,
   },
   brandTitle: {

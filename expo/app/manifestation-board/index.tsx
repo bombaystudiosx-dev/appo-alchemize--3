@@ -228,6 +228,7 @@ export default function ManifestationBoardScreen() {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>

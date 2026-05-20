@@ -13,6 +13,7 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Send, Wrench, X, RefreshCw, Zap, Shield, Database, Bell, ChevronRight } from 'lucide-react-native';
 import { generateText } from '@rork-ai/toolkit-sdk';
@@ -83,6 +84,7 @@ function FixButton({ action, isLast }: { action: FixAction; isLast: boolean }) {
 
 export default function SupportChatScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
@@ -264,7 +266,7 @@ export default function SupportChatScreen() {
     <View style={styles.container}>
       <LinearGradient colors={['#080214', '#0c0520']} style={StyleSheet.absoluteFillObject} />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <X size={22} color="#fff" />
         </TouchableOpacity>
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 54 : 20,
+    paddingTop: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.06)',

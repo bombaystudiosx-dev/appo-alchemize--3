@@ -182,6 +182,7 @@ export default function AffirmationsScreen() {
           contentContainerStyle={styles.list}
           style={styles.flatList}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 

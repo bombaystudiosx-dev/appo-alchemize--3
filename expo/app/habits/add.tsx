@@ -8,7 +8,10 @@ import {
   ScrollView,
   Alert,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,27 +31,30 @@ const HABIT_TYPES: { type: HabitType; label: string; icon: any }[] = [
   { type: 'counter', label: 'Counter', icon: Hash },
 ];
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+
 const TEMPLATES = [
-  { emoji: '🧘', name: 'Meditate', type: 'timer' as HabitType, goal: 15, goalUnit: 'minutes' as const, xpReward: 15, energyReward: 4 },
-  { emoji: '💪', name: 'Exercise', type: 'timer' as HabitType, goal: 30, goalUnit: 'minutes' as const, xpReward: 25, energyReward: 8 },
-  { emoji: '📚', name: 'Read', type: 'timer' as HabitType, goal: 20, goalUnit: 'minutes' as const, xpReward: 20, energyReward: 5 },
-  { emoji: '💧', name: 'Drink Water', type: 'counter' as HabitType, goal: 8, goalUnit: 'times' as const, xpReward: 10, energyReward: 3 },
-  { emoji: '🌅', name: 'Wake Up Early', type: 'checkbox' as HabitType, goal: 1, goalUnit: 'times' as const, xpReward: 10, energyReward: 5 },
+  { emoji: '🧘', name: 'Meditate', type: 'timer' as HabitType, goal: 15, goalUnit: 'minutes' as const },
+  { emoji: '💪', name: 'Exercise', type: 'timer' as HabitType, goal: 30, goalUnit: 'minutes' as const },
+  { emoji: '📚', name: 'Read', type: 'timer' as HabitType, goal: 20, goalUnit: 'minutes' as const },
+  { emoji: '💧', name: 'Drink Water', type: 'counter' as HabitType, goal: 8, goalUnit: 'times' as const },
+  { emoji: '🌅', name: 'Wake Up Early', type: 'checkbox' as HabitType, goal: 1, goalUnit: 'times' as const },
 ];
 
 export default function AddHabitScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const insets = useSafeAreaInsets();
 
   const [name, setName] = useState('');
   const [habitType, setHabitType] = useState<HabitType>('checkbox');
   const [frequencyType, setFrequencyType] = useState<typeof FREQUENCY_TYPES[number]>('daily');
+  const [frequencyDaysPerWeek, setFrequencyDaysPerWeek] = useState(7);
+  const [selectedWeekdays, setSelectedWeekdays] = useState<number[]>([]);
   const [section, setSection] = useState<typeof SECTIONS[number]>('custom');
   const [icon, setIcon] = useState('✨');
   const [goal, setGoal] = useState('1');
   const [goalUnit, setGoalUnit] = useState<'minutes' | 'hours' | 'times'>('times');
-  const [xpReward, setXpReward] = useState('5');
-  const [energyReward, setEnergyReward] = useState('1');
 
   const createMutation = useMutation({
     mutationFn: (habit: Habit) => habitsDb.create(habit),
@@ -64,8 +70,12 @@ export default function AddHabitScreen() {
     setHabitType(template.type);
     setGoal(template.goal.toString());
     setGoalUnit(template.goalUnit);
-    setXpReward(template.xpReward.toString());
-    setEnergyReward(template.energyReward.toString());
+  };
+
+  const toggleWeekday = (day: number) => {
+    setSelectedWeekdays(prev =>
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
   };
 
   const handleSave = () => {
@@ -75,8 +85,7 @@ export default function AddHabitScreen() {
     }
 
     const goalNum = parseInt(goal) || 1;
-    const xpNum = parseInt(xpReward) || 5;
-    const energyNum = parseInt(energyReward) || 1;
+    const customDays = frequencyType === 'custom' ? selectedWeekdays : [];
 
     const habit: Habit & { section?: string } = {
       id: Date.now().toString(),
@@ -86,11 +95,11 @@ export default function AddHabitScreen() {
       goalUnit: habitType === 'checkbox' ? 'times' : goalUnit,
       type: habitType,
       frequencyType,
-      customDays: [],
+      customDays,
       currentProgress: 0,
       streak: 0,
-      xpReward: xpNum,
-      energyReward: energyNum,
+      xpReward: 0,
+      energyReward: 0,
       color: '#6366f1',
       lastCompletedDate: '',
       createdAt: Date.now(),
@@ -106,14 +115,22 @@ export default function AddHabitScreen() {
         colors={['rgba(10, 10, 30, 0.85)', 'rgba(20, 15, 50, 0.9)']}
         style={styles.overlay}
       >
-        <View style={styles.header}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <Text style={styles.headerTitle}>New Habit</Text>
           <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
             <X color="#C9A7FF" size={24} />
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+        >
           {name === '' && (
             <View style={styles.templatesSection}>
               <Text style={styles.templatesTitle}>Quick Start Templates</Text>
@@ -215,32 +232,6 @@ export default function AddHabitScreen() {
               </>
             )}
 
-            <Text style={styles.label}>Rewards</Text>
-            <View style={styles.rewardsRow}>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardLabel}>🏆 XP</Text>
-                <TextInput
-                  style={[styles.input, styles.rewardInput]}
-                  value={xpReward}
-                  onChangeText={setXpReward}
-                  placeholder="5"
-                  placeholderTextColor="rgba(201, 167, 255, 0.4)"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardLabel}>⚡ Energy</Text>
-                <TextInput
-                  style={[styles.input, styles.rewardInput]}
-                  value={energyReward}
-                  onChangeText={setEnergyReward}
-                  placeholder="1"
-                  placeholderTextColor="rgba(201, 167, 255, 0.4)"
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
-
             <Text style={styles.label}>Section</Text>
             <View style={styles.chipContainer}>
               {SECTIONS.map((sec) => (
@@ -270,6 +261,44 @@ export default function AddHabitScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {frequencyType === 'weekly' && (
+              <>
+                <Text style={styles.subLabel}>Days per week</Text>
+                <View style={styles.daysPerWeekRow}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[styles.dayNumChip, frequencyDaysPerWeek === n && styles.dayNumChipActive]}
+                      onPress={() => setFrequencyDaysPerWeek(n)}
+                    >
+                      <Text style={[styles.dayNumText, frequencyDaysPerWeek === n && styles.dayNumTextActive]}>
+                        {n}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {frequencyType === 'custom' && (
+              <>
+                <Text style={styles.subLabel}>Select days</Text>
+                <View style={styles.weekdayRow}>
+                  {WEEKDAYS.map((day, idx) => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[styles.weekdayChip, selectedWeekdays.includes(idx) && styles.weekdayChipActive]}
+                      onPress={() => toggleWeekday(idx)}
+                    >
+                      <Text style={[styles.weekdayText, selectedWeekdays.includes(idx) && styles.weekdayTextActive]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
           </BlurView>
 
           <TouchableOpacity
@@ -287,6 +316,7 @@ export default function AddHabitScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </ImageBackground>
   );
@@ -304,7 +334,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
     paddingBottom: 16,
   },
   headerTitle: {
@@ -498,21 +527,64 @@ const styles = StyleSheet.create({
     color: '#C9A7FF',
     fontWeight: '600' as const,
   },
-  rewardsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rewardItem: {
-    flex: 1,
-  },
-  rewardLabel: {
+  subLabel: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: '#C9A7FF',
-    marginBottom: 8,
+    color: 'rgba(201, 167, 255, 0.7)',
+    marginTop: 12,
+    marginBottom: 10,
   },
-  rewardInput: {
-    marginTop: 0,
+  daysPerWeekRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  dayNumChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(201, 167, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNumChipActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  dayNumText: {
+    fontSize: 14,
+    color: 'rgba(201, 167, 255, 0.7)',
+    fontWeight: '700' as const,
+  },
+  dayNumTextActive: {
+    color: '#fff',
+  },
+  weekdayRow: {
+    flexDirection: 'row',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  weekdayChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(201, 167, 255, 0.3)',
+  },
+  weekdayChipActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  weekdayText: {
+    fontSize: 12,
+    color: 'rgba(201, 167, 255, 0.7)',
+    fontWeight: '600' as const,
+  },
+  weekdayTextActive: {
+    color: '#fff',
   },
   saveButton: {
     borderRadius: 16,

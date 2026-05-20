@@ -125,7 +125,7 @@ export default function FitnessHubScreen() {
         resizeMode="cover"
       >
         <View style={styles.overlay} />
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.addWorkoutSection}>
             <TouchableOpacity
               style={styles.addManualButton}

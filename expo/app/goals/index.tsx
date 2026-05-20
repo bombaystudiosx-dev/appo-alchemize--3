@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ImageBackground, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, CheckCircle2, Circle, Flame, Target, TrendingUp } from 'lucide-react-native';
-import { goalsDb, goalCompletionsDb } from '@/lib/database';
-import type { Goal, GoalCompletion } from '@/types';
+import { Plus, Trash2, CheckCircle2, Circle } from 'lucide-react-native';
+import { goalsDb } from '@/lib/database';
+import type { Goal } from '@/types';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 
@@ -17,32 +17,6 @@ export default function GoalsScreen() {
     queryKey: ['goals'],
     queryFn: () => goalsDb.getAll(),
   });
-
-  const { data: allCompletions = [] } = useQuery({
-    queryKey: ['all-goal-completions'],
-    queryFn: async () => {
-      const completions: GoalCompletion[] = [];
-      for (const goal of allGoals) {
-        const goalCompletions = await goalCompletionsDb.getByGoalId(goal.id);
-        completions.push(...goalCompletions);
-      }
-      return completions;
-    },
-    enabled: allGoals.length > 0,
-  });
-
-  const getGoalCompletions = (goalId: string) => {
-    return allCompletions.filter(c => c.goalId === goalId);
-  };
-
-  const getThisMonthProgress = (goalId: string) => {
-    const completions = getGoalCompletions(goalId);
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-    const daysThisMonth = completions.filter(c => c.completionDate >= startOfMonth).length;
-    const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    return Math.round((daysThisMonth / totalDaysInMonth) * 100);
-  };
 
   const filteredGoals = allGoals.filter((g) => g.status === filter);
 
@@ -66,9 +40,7 @@ export default function GoalsScreen() {
   });
 
   const renderItem = ({ item }: { item: Goal }) => {
-    const monthProgress = getThisMonthProgress(item.id);
-    const completions = getGoalCompletions(item.id);
-    
+    const progress = item.progress ?? 0;
     return (
       <TouchableOpacity
         style={styles.card}
@@ -94,39 +66,24 @@ export default function GoalsScreen() {
                 {item.description}
               </Text>
             ) : null}
-            
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Flame size={14} color="#f59e0b" />
-                <Text style={styles.statText}>{item.streak || 0} streak</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Target size={14} color="#6366f1" />
-                <Text style={styles.statText}>{completions.length} logged</Text>
-              </View>
-              {item.targetDate && (
-                <View style={styles.statItem}>
-                  <TrendingUp size={14} color="#10b981" />
-                  <Text style={styles.statText}>
-                    {new Date(item.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </Text>
-                </View>
-              )}
-            </View>
-            
+            {item.targetDate ? (
+              <Text style={styles.cardDate}>
+                Due: {new Date(item.targetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </Text>
+            ) : null}
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <View 
+                <View
                   style={[
-                    styles.progressFill, 
-                    { 
-                      width: `${Math.min(monthProgress, 100)}%`,
-                      backgroundColor: monthProgress >= 75 ? '#10b981' : monthProgress >= 50 ? '#f59e0b' : '#6366f1',
-                    }
-                  ]} 
+                    styles.progressFill,
+                    {
+                      width: `${Math.min(progress, 100)}%`,
+                      backgroundColor: progress >= 75 ? '#10b981' : progress >= 50 ? '#f59e0b' : '#6366f1',
+                    },
+                  ]}
                 />
               </View>
-              <Text style={styles.progressText}>{monthProgress}%</Text>
+              <Text style={styles.progressText}>{progress}%</Text>
             </View>
           </View>
           <TouchableOpacity
@@ -184,6 +141,7 @@ export default function GoalsScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
         />
       )}
 
@@ -276,22 +234,6 @@ const styles = StyleSheet.create({
   cardDate: {
     fontSize: 12,
     color: '#6366f1',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 10,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statText: {
-    fontSize: 12,
-    color: '#a0a0a0',
-    fontWeight: '500' as const,
   },
   progressContainer: {
     flexDirection: 'row',

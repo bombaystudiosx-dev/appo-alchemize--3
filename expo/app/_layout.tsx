@@ -7,10 +7,9 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,19 +34,23 @@ const queryClient = new QueryClient({
 function FloatingBackButton() {
   const router = useRouter();
   const navState = useRootNavigationState();
+  const segments = useSegments();
+  const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const canGoBack = (navState?.routes?.length ?? 0) > 1;
-    setVisible(canGoBack);
-  }, [navState]);
+    const root = segments[0] as string | undefined;
+    const onAuthOrTerms = root === 'auth' || root === 'terms';
+    setVisible(canGoBack && !onAuthOrTerms);
+  }, [navState, segments]);
 
   if (!visible) return null;
 
   return (
     <TouchableOpacity
       onPress={() => router.back()}
-      style={layoutStyles.floatingBackButton}
+      style={[layoutStyles.floatingBackButton, { top: insets.top + 8 }]}
       activeOpacity={0.6}
       testID="floating-back-button"
     >
@@ -240,8 +243,8 @@ export default function RootLayout() {
                     }}
                   >
                     <Stack.Screen name="index" />
-                    <Stack.Screen name="auth" />
-                    <Stack.Screen name="terms" />
+                    <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
+                    <Stack.Screen name="terms" options={{ gestureEnabled: false }} />
                     <Stack.Screen name="settings" />
                     <Stack.Screen
                       name="(tabs)"
@@ -261,7 +264,6 @@ export default function RootLayout() {
 const layoutStyles = StyleSheet.create({
   floatingBackButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 54 : 20,
     left: 12,
     zIndex: 50,
   },

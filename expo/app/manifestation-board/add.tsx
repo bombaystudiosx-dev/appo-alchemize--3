@@ -77,6 +77,7 @@ export default function AddManifestationScreen() {
   const [selectedMood, setSelectedMood] = useState<Manifestation['category'] | null>(null);
   const [selectedImage, setSelectedImage] = useState<SelectedImageState | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const [imageLoadError, setImageLoadError] = useState<boolean>(false);
 
   const createMutation = useMutation({
     mutationFn: (manifestation: Manifestation) => manifestationsDb.create(manifestation),
@@ -121,8 +122,13 @@ export default function AddManifestationScreen() {
         aspect: IMAGE_PICKER_ASPECT,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset?.uri) {
+          Alert.alert('Error', IMAGE_PICK_ERROR_MESSAGE);
+          return;
+        }
+        setImageLoadError(false);
         setSelectedImage({
           uri: asset.uri,
           width: asset.width,
@@ -167,8 +173,13 @@ export default function AddManifestationScreen() {
         aspect: IMAGE_PICKER_ASPECT,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
+        if (!asset?.uri) {
+          Alert.alert('No Photo', CAMERA_MISSING_ASSET_MESSAGE);
+          return;
+        }
+        setImageLoadError(false);
         setSelectedImage({
           uri: asset.uri,
           width: asset.width,
@@ -188,6 +199,7 @@ export default function AddManifestationScreen() {
 
   const handleRemoveImage = useCallback(() => {
     setSelectedImage(null);
+    setImageLoadError(false);
   }, []);
 
   const handleCreate = useCallback(() => {
@@ -245,12 +257,17 @@ export default function AddManifestationScreen() {
 
           <Text style={styles.sectionLabel}>Vision Image</Text>
           <View style={styles.imageUploadArea}>
-            {imageUri ? (
+            {imageUri && !imageLoadError ? (
               <View style={styles.imagePreviewContainer}>
                 <Image
                   source={{ uri: imageUri }}
                   style={styles.imagePreview}
                   contentFit="cover"
+                  onError={() => {
+                    console.error(`${CONSOLE_SCOPE} Image failed to load:`, imageUri);
+                    setImageLoadError(true);
+                    Alert.alert('Image Error', 'Could not load the selected image. Please try again.');
+                  }}
                 />
                 <TouchableOpacity
                   style={styles.removeImageButton}
