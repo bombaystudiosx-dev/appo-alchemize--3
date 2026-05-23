@@ -1,14 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Text,
-  ScrollView,
+import { 
+  View, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  Text, 
+  ScrollView, 
   Alert,
   Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -153,17 +152,16 @@ export default function AddMealScreen() {
   const selectedMeal = MEAL_TYPES.find(m => m.value === mealType);
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <View style={styles.container}>
       <LinearGradient
         colors={['#0a0a0f', '#0d0d15', '#0a0a0f']}
         style={StyleSheet.absoluteFill}
       />
-
-      <ScrollView
-        style={styles.scrollView}
+      
+      <ScrollView 
+        style={styles.scrollView} 
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.mealTypeSection}>
           <Text style={styles.sectionLabel}>Log to</Text>
@@ -364,7 +362,7 @@ export default function AddMealScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

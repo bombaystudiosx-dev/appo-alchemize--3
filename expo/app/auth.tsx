@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,12 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
-  Animated,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Mail, Lock, User, Eye, EyeOff, Globe, ChevronRight } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -75,7 +73,6 @@ const TRANSLATIONS = {
 
 export default function AuthScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { login, signup, loginWithApple, loginWithGoogle, resetPassword } = useAuth();
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -96,26 +93,8 @@ export default function AuthScreen() {
   const [error, setError] = useState('');
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [showPassword, setShowPassword] = useState(false);
-  const [termsAgreed, setTermsAgreed] = useState(false);
-  const termsCheckScale = useRef(new Animated.Value(1)).current;
 
   const t = TRANSLATIONS[language];
-
-  const handleTermsToggle = () => {
-    Animated.sequence([
-      Animated.timing(termsCheckScale, { toValue: 0.8, duration: 70, useNativeDriver: true }),
-      Animated.spring(termsCheckScale, { toValue: 1, useNativeDriver: true, damping: 10, stiffness: 300 }),
-    ]).start();
-    setTermsAgreed(prev => !prev);
-  };
-
-  const requireTerms = () => {
-    if (!termsAgreed) {
-      Alert.alert('Agreement Required', 'Please agree to the Terms & Agreement before continuing.');
-      return false;
-    }
-    return true;
-  };
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -127,8 +106,6 @@ export default function AuthScreen() {
       setError(t.enterName);
       return;
     }
-
-    if (!requireTerms()) return;
 
     setIsLoading(true);
     setError('');
@@ -175,7 +152,6 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
-    if (!requireTerms()) return;
     setGoogleLoading(true);
     setError('');
     const result = await loginWithGoogle();
@@ -219,7 +195,7 @@ export default function AuthScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 16 }]}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -356,24 +332,6 @@ export default function AuthScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity
-              onPress={handleTermsToggle}
-              style={styles.termsRow}
-              activeOpacity={0.8}
-              testID="auth-terms-checkbox"
-            >
-              <Animated.View style={[
-                styles.termsCheck,
-                termsAgreed && styles.termsCheckOn,
-                { transform: [{ scale: termsCheckScale }] },
-              ]}>
-                {termsAgreed && <Text style={styles.termsCheckmark}>✓</Text>}
-              </Animated.View>
-              <Text style={styles.termsLabel}>
-                I agree to the <Text style={styles.termsLabelBold}>Terms & Conditions</Text> and <Text style={styles.termsLabelBold}>Privacy Policy</Text>.
-              </Text>
-            </TouchableOpacity>
-
             <View style={styles.socialRow}>
               <TouchableOpacity
                 style={styles.socialBtn}
@@ -404,7 +362,6 @@ export default function AuthScreen() {
                       cornerRadius={10}
                       style={styles.appleNativeBtn}
                       onPress={async () => {
-                        if (!requireTerms()) return;
                         setAppleLoading(true);
                         setError('');
                         const result = await loginWithApple();
@@ -428,7 +385,6 @@ export default function AuthScreen() {
               )}
             </View>
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -480,7 +436,7 @@ const styles = StyleSheet.create({
   scroll: {
     flexGrow: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 0,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   spacer: {
     flex: 1,
@@ -690,44 +646,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: '600' as const,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginBottom: 14,
-    paddingHorizontal: 2,
-  },
-  termsCheck: {
-    width: 20,
-    height: 20,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: 'rgba(167,139,250,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 1,
-    backgroundColor: 'rgba(139,92,246,0.07)',
-    flexShrink: 0,
-  },
-  termsCheckOn: {
-    backgroundColor: '#7c3aed',
-    borderColor: '#7c3aed',
-  },
-  termsCheckmark: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700' as const,
-  },
-  termsLabel: {
-    flex: 1,
-    flexShrink: 1,
-    fontSize: 13,
-    color: 'rgba(220,210,255,0.9)',
-    lineHeight: 20,
-  },
-  termsLabelBold: {
-    fontWeight: '700' as const,
-    color: '#c4b5fd',
   },
 });

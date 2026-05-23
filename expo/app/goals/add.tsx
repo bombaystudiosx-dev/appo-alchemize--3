@@ -7,8 +7,6 @@ import {
   Text,
   ScrollView,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -42,7 +40,7 @@ export default function AddGoalScreen() {
       title: title.trim(),
       description: description.trim(),
       targetDate: dueDate ? new Date(dueDate).getTime() : null,
-      status: 'in_progress',
+      status: 'not_started',
       progress: 0,
       streak: 0,
       bestStreak: 0,
@@ -55,15 +53,8 @@ export default function AddGoalScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-      >
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Text style={styles.label}>Title</Text>
         <TextInput
           style={styles.input}
@@ -104,7 +95,7 @@ export default function AddGoalScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -118,7 +109,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 60,
   },
   label: {
     fontSize: 16,

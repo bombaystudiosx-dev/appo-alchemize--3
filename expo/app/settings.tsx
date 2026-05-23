@@ -41,12 +41,7 @@ import {
   Smartphone,
   Bell,
   CalendarDays,
-  Star,
-  MessageCircle,
-  Send,
-  Wrench,
 } from 'lucide-react-native';
-import * as StoreReview from 'expo-store-review';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { resetDatabase } from '@/lib/database';
@@ -110,10 +105,6 @@ export default function SettingsScreen() {
   const [featuresVisible, setFeaturesVisible] = useState(false);
   const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>({});
   const [themeModalVisible, setThemeModalVisible] = useState(false);
-  const [supportModalVisible, setSupportModalVisible] = useState(false);
-  const [supportIssueType, setSupportIssueType] = useState<'Bug' | 'Problem' | 'Feature Request' | 'Other'>('Bug');
-  const [supportMessage, setSupportMessage] = useState('');
-  const [supportSending, setSupportSending] = useState(false);
 
   const [healthKitModalVisible, setHealthKitModalVisible] = useState(false);
   const [healthKitPermissions, setHealthKitPermissions] = useState<HealthKitPermissions | null>(null);
@@ -823,36 +814,6 @@ export default function SettingsScreen() {
           <ChevronRight color="#666" size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingRow} onPress={async () => {
-          if (Platform.OS === 'web') {
-            Alert.alert('Not Available', 'Rating is only available on mobile devices.');
-            return;
-          }
-          try {
-            const isAvailable = await StoreReview.isAvailableAsync();
-            if (isAvailable) {
-              await StoreReview.requestReview();
-              console.log('[Settings] Store review requested');
-            } else {
-              Alert.alert('Not Available', 'In-app review is not available on this device.');
-            }
-          } catch (error) {
-            console.error('[Settings] Store review error:', error);
-            Alert.alert('Error', 'Could not open the review prompt. Please try again later.');
-          }
-        }}>
-          <View style={styles.settingRowLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 191, 36, 0.15)' }]}>
-              <Star color="#fbbf24" size={20} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Rate Alchemize</Text>
-              <Text style={styles.settingSubtitle}>Love the app? Leave us a review</Text>
-            </View>
-          </View>
-          <ChevronRight color="#666" size={20} />
-        </TouchableOpacity>
-
         {Platform.OS === 'web' && (
           <TouchableOpacity style={styles.settingRow} onPress={handlePwaInstall}>
             <View style={styles.settingRowLeft}>
@@ -921,41 +882,10 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       )}
 
-      {/* SUPPORT Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>SUPPORT</Text>
-        <TouchableOpacity style={styles.settingRow} onPress={() => setSupportModalVisible(true)}>
-          <View style={styles.settingRowLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-              <MessageCircle color="#10b981" size={20} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Customer Support</Text>
-              <Text style={styles.settingSubtitle}>Report bugs or send feedback</Text>
-            </View>
-          </View>
-          <ChevronRight color="#666" size={20} />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.settingRow} onPress={() => router.push('/support-chat' as any)}>
-          <View style={styles.settingRowLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Wrench color="#a78bfa" size={20} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>AI Repair Assistant</Text>
-              <Text style={styles.settingSubtitle}>Diagnose and fix app issues instantly</Text>
-            </View>
-          </View>
-          <ChevronRight color="#666" size={20} />
-        </TouchableOpacity>
-      </View>
-
       {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerVersion}>Alchemize v{APP_VERSION}</Text>
         <Text style={styles.footerMade}>Made with ✨ and 💜</Text>
-        <Text style={styles.footerPoweredBy}>Powered by metallic.v1</Text>
       </View>
 
       {/* Permission Needed Modal */}
@@ -1086,7 +1016,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE TERMS & CONDITIONS</Text>
-              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
+              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
 
               <Text style={styles.legalSectionTitle}>1. Agreement</Text>
               <Text style={styles.legalText}>
@@ -1282,7 +1212,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE PRIVACY POLICY</Text>
-              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
+              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
 
               <Text style={styles.legalSectionTitle}>1. Overview</Text>
               <Text style={styles.legalText}>
@@ -1495,84 +1425,6 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Support Modal */}
-      <Modal
-        visible={supportModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setSupportModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.supportModal}>
-            <View style={styles.supportModalHeader}>
-              <Text style={styles.supportModalTitle}>Customer Support</Text>
-              <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
-                <X color="#fff" size={24} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={styles.supportModalScroll} showsVerticalScrollIndicator={false}>
-              <Text style={styles.supportModalBody}>
-                Report a bug, suggest a feature, or send us feedback. We read every message.
-              </Text>
-              <Text style={styles.supportLabel}>Issue Type</Text>
-              <View style={styles.issueTypeRow}>
-                {(['Bug', 'Problem', 'Feature Request', 'Other'] as const).map((type) => (
-                  <TouchableOpacity
-                    key={type}
-                    style={[styles.issueTypeChip, supportIssueType === type && styles.issueTypeChipActive]}
-                    onPress={() => setSupportIssueType(type)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.issueTypeChipText, supportIssueType === type && styles.issueTypeChipTextActive]}>{type}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-              <Text style={styles.supportLabel}>Message</Text>
-              <TextInput
-                style={[styles.supportInput, styles.supportTextArea]}
-                value={supportMessage}
-                onChangeText={setSupportMessage}
-                placeholder="Describe the issue or your feedback..."
-                placeholderTextColor="#666"
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-              />
-              <TouchableOpacity
-                style={[styles.supportSendButton, (!supportMessage.trim() || supportSending) && styles.supportSendButtonDisabled]}
-                onPress={async () => {
-                  if (!supportMessage.trim()) return;
-                  setSupportSending(true);
-                  try {
-                    const subject = `[${supportIssueType}] Alchemize Support`;
-                    const body = `Issue Type: ${supportIssueType}\n\nMessage:\n${supportMessage.trim()}\n\nApp Version: ${APP_VERSION}\nPlatform: ${Platform.OS}`;
-                    const mailto = `mailto:support@alchemize.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-                    const canOpen = await Linking.canOpenURL(mailto);
-                    if (canOpen) {
-                      await Linking.openURL(mailto);
-                    } else {
-                      Alert.alert('Contact Us', 'Please email support@alchemize.app with your feedback.');
-                    }
-                    setSupportModalVisible(false);
-                    setSupportIssueType('Bug');
-                    setSupportMessage('');
-                  } catch (error) {
-                    console.error('[Settings] Support email error:', error);
-                    Alert.alert('Error', 'Could not open email client. Please contact support@alchemize.app');
-                  } finally {
-                    setSupportSending(false);
-                  }
-                }}
-                disabled={!supportMessage.trim() || supportSending}
-              >
-                <Send color="#fff" size={18} />
-                <Text style={styles.supportSendText}>{supportSending ? 'Opening...' : 'Send Feedback'}</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
       </ScrollView>
     </View>
   );
@@ -1747,106 +1599,6 @@ const styles = StyleSheet.create({
   footerMade: {
     fontSize: 13,
     color: '#888',
-  },
-  footerPoweredBy: {
-    fontSize: 11,
-    color: 'rgba(139,92,246,0.4)',
-    fontWeight: '500' as const,
-    letterSpacing: 0.8,
-    marginTop: 8,
-  },
-  supportModal: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 24,
-    padding: 24,
-    width: '90%',
-    maxWidth: 380,
-    maxHeight: '80%',
-  },
-  supportModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  supportModalTitle: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#fff',
-  },
-  supportModalScroll: {
-    maxHeight: 400,
-  },
-  supportModalBody: {
-    fontSize: 14,
-    color: '#aaa',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  supportLabel: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#888',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  supportInput: {
-    backgroundColor: '#0f0f0f',
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: '#fff',
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-  },
-  supportTextArea: {
-    minHeight: 120,
-    paddingTop: 14,
-  },
-  issueTypeRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 4,
-  },
-  issueTypeChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#0f0f0f',
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
-  },
-  issueTypeChipActive: {
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    borderColor: '#8b5cf6',
-  },
-  issueTypeChipText: {
-    fontSize: 13,
-    color: '#aaa',
-    fontWeight: '600' as const,
-  },
-  issueTypeChipTextActive: {
-    color: '#fff',
-  },
-  supportSendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#8b5cf6',
-    borderRadius: 14,
-    paddingVertical: 16,
-    marginTop: 24,
-    marginBottom: 8,
-  },
-  supportSendButtonDisabled: {
-    opacity: 0.4,
-  },
-  supportSendText: {
-    fontSize: 15,
-    fontWeight: '700' as const,
-    color: '#fff',
   },
   modalOverlay: {
     flex: 1,

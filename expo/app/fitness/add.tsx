@@ -1,19 +1,13 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, Zap, AlertCircle } from 'lucide-react-native';
+import { Sparkles, Zap } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
 import { workoutsDb } from '@/lib/database';
 import type { Workout } from '@/types';
-
-const RORK_API_KEY = process.env.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY ?? '';
-if (!RORK_API_KEY) {
-  console.warn('[FitnessAI] EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY is not set. AI workout estimation may not work correctly.');
-}
 
 const CalorieEstimateSchema = z.object({
   estimatedCalories: z.number().describe('Estimated calories burned during the workout'),
@@ -23,7 +17,6 @@ const CalorieEstimateSchema = z.object({
 
 export default function AddWorkoutScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
 
   const [type, setType] = useState<'cardio' | 'strength' | 'yoga' | 'hiit' | 'stretching' | 'sports' | 'other'>('cardio');
@@ -99,13 +92,8 @@ Provide an estimated calorie burn based on this information. Consider typical me
   };
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Text style={styles.label}>Workout Type</Text>
         <View style={styles.typeContainer}>
           {(['cardio', 'strength', 'yoga', 'hiit', 'stretching', 'sports', 'other'] as const).map((t) => (
@@ -218,7 +206,7 @@ Provide an estimated calorie burn based on this information. Consider typical me
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

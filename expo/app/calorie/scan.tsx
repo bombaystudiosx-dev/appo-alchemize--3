@@ -11,7 +11,6 @@ import {
   Alert,
   Animated,
   Dimensions,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -44,14 +43,6 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { generateObject } from '@rork-ai/toolkit-sdk';
-
-const RORK_API_KEY = process.env.EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY ?? '';
-
-if (!RORK_API_KEY) {
-  console.warn('[FoodScanner] EXPO_PUBLIC_RORK_TOOLKIT_SECRET_KEY is not set. AI food analysis may not work correctly.');
-} else {
-  console.log('[FoodScanner] API key configured ✓');
-}
 import { z } from 'zod';
 import { foodLogsDb, appointmentsDb } from '@/lib/database';
 import type { FoodLog, MealType, Appointment } from '@/types';
@@ -305,6 +296,8 @@ export default function FoodScannerScreen() {
 
   const saveMutation = useMutation({
     mutationFn: async (foods: FoodAnalysis['foods']) => {
+      if (Platform.OS === 'web') return;
+
       const logs: FoodLog[] = foods.map((food) => ({
         id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         foodName: food.name,
@@ -356,19 +349,10 @@ export default function FoodScannerScreen() {
       return logs;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
-      void queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
-    },
-    onError: (error: any) => {
-      console.error('[FoodScanner] Save error:', error);
-      Alert.alert(
-        'Save Failed',
-        'Could not save your food log. Please try again.',
-        [{ text: 'OK' }]
-      );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     },
   });
 
@@ -487,7 +471,7 @@ export default function FoodScannerScreen() {
 
   if (capturedImage && (analysis || analyzeMutation.isPending)) {
     return (
-      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <View style={styles.container}>
         <LinearGradient
           colors={['#0a0a0f', '#0d0d15', '#0a0a0f']}
           style={StyleSheet.absoluteFill}
@@ -517,7 +501,6 @@ export default function FoodScannerScreen() {
           style={styles.resultsScroll}
           contentContainerStyle={[styles.resultsContent, { paddingBottom: insets.bottom + 110 }]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.imagePreviewContainer}>
             <Image source={{ uri: capturedImage }} style={styles.previewImage} contentFit="cover" />
@@ -931,7 +914,7 @@ export default function FoodScannerScreen() {
             </TouchableOpacity>
           </View>
         )}
-      </KeyboardAvoidingView>
+      </View>
     );
   }
 

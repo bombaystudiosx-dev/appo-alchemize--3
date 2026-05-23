@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,7 +16,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import ConfettiCannon from 'react-native-confetti-cannon';
-import { habitsDb, habitCompletionsDb } from '@/lib/database';
+import { habitsDb, habitCompletionsDb, userProfileDb } from '@/lib/database';
 import type { Habit } from '@/types';
 import { ASSETS } from '@/constants/assets';
 import LoadingState from '@/components/LoadingState';
@@ -41,10 +41,16 @@ export default function HabitsScreen() {
   const [collapsedSections, setCollapsedSections] = useState<Set<Section>>(new Set());
   const [timerStates, setTimerStates] = useState<Record<string, { running: boolean; elapsed: number; interval?: any }>>({});
   const [counterValues, setCounterValues] = useState<Record<string, number>>({});
+  const [floatingRewards, setFloatingRewards] = useState<{ id: string; xp: number; energy: number; x: number; y: number }[]>([]);
 
   const { data: habits = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['habits'],
     queryFn: () => habitsDb.getAll(),
+  });
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: () => userProfileDb.get(),
   });
 
   const { data: allCompletions = [] } = useQuery({
@@ -63,7 +69,7 @@ export default function HabitsScreen() {
 
 
   const completeHabitMutation = useMutation({
-    mutationFn: async ({ habitId, value }: { habitId: string; value: number }) => {
+    mutationFn: async ({ habitId, value, xp, energy }: { habitId: string; value: number; xp: number; energy: number }) => {
       const dateStart = new Date(selectedDate).setHours(0, 0, 0, 0);
       await habitCompletionsDb.create({
         id: Date.now().toString(),
@@ -83,14 +89,27 @@ export default function HabitsScreen() {
           lastCompletedDate: new Date().toISOString(),
         });
       }
+
+      await userProfileDb.updateXpAndEnergy(xp, energy);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
       void queryClient.invalidateQueries({ queryKey: ['habits'] });
+      void queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       confettiRef.current?.start();
+      
+      showFloatingReward(variables.xp, variables.energy);
     },
   });
+
+  const showFloatingReward = (xp: number, energy: number) => {
+    const id = Date.now().toString();
+    setFloatingRewards(prev => [...prev, { id, xp, energy, x: Math.random() * 200 + 100, y: 300 }]);
+    setTimeout(() => {
+      setFloatingRewards(prev => prev.filter(r => r.id !== id));
+    }, 2000);
+  };
 
   const getWeekDates = () => {
     const now = new Date();
@@ -147,9 +166,12 @@ export default function HabitsScreen() {
 
   const totalStats = useMemo(() => {
     const maxStreak = Math.max(...habits.map(h => getHabitStreak(h.id)), 0);
-    const totalCompleted = allCompletions.length;
-    return { maxStreak, totalCompleted };
-  }, [habits, allCompletions, getHabitStreak]);
+    return {
+      maxStreak,
+      totalXP: userProfile?.totalXp || 0,
+      totalEnergy: userProfile?.totalEnergy || 0,
+    };
+  }, [habits, userProfile, getHabitStreak]);
 
   const getDayCompletionCount = (date: Date): number => {
     const dateStart = new Date(date).setHours(0, 0, 0, 0);
@@ -232,6 +254,8 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: minutes,
+        xp: habit.xpReward,
+        energy: habit.energyReward,
       });
       setTimerStates(prev => ({ ...prev, [habit.id]: { running: false, elapsed: 0 } }));
     } else {
@@ -245,6 +269,8 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: count,
+        xp: habit.xpReward,
+        energy: habit.energyReward,
       });
       setCounterValues(prev => ({ ...prev, [habit.id]: 0 }));
     } else {
@@ -258,6 +284,8 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: 1,
+        xp: habit.xpReward,
+        energy: habit.energyReward,
       });
     }
   };
@@ -289,6 +317,14 @@ export default function HabitsScreen() {
                 {habit.type === 'checkbox' && 'Daily task'}
                 {' • 🔥 '}{streak}
               </Text>
+            </View>
+          </View>
+          <View style={styles.habitRewards}>
+            <View style={styles.rewardBadge}>
+              <Text style={styles.rewardText}>🏆 {habit.xpReward}</Text>
+            </View>
+            <View style={styles.rewardBadge}>
+              <Text style={styles.rewardText}>⚡ {habit.energyReward}</Text>
             </View>
           </View>
         </View>
@@ -468,15 +504,23 @@ export default function HabitsScreen() {
             <Text style={styles.statIcon}>🔥</Text>
             <View>
               <Text style={styles.statValue}>{totalStats.maxStreak}</Text>
-              <Text style={styles.statLabel}>Best Streak</Text>
+              <Text style={styles.statLabel}>Max Streak</Text>
             </View>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statIcon}>✅</Text>
+            <Text style={styles.statIcon}>🏆</Text>
             <View>
-              <Text style={styles.statValue}>{totalStats.totalCompleted}</Text>
-              <Text style={styles.statLabel}>Completions</Text>
+              <Text style={styles.statValue}>{totalStats.totalXP}</Text>
+              <Text style={styles.statLabel}>Total XP</Text>
+            </View>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statIcon}>⚡</Text>
+            <View>
+              <Text style={styles.statValue}>{totalStats.totalEnergy}</Text>
+              <Text style={styles.statLabel}>Energy</Text>
             </View>
           </View>
         </BlurView>
@@ -511,7 +555,7 @@ export default function HabitsScreen() {
           })}
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {isLoading ? (
             <LoadingState message="Loading habits..." />
           ) : isError ? (
@@ -527,6 +571,10 @@ export default function HabitsScreen() {
           )}
         </ScrollView>
 
+        {floatingRewards.map(reward => (
+          <FloatingReward key={reward.id} xp={reward.xp} energy={reward.energy} x={reward.x} y={reward.y} />
+        ))}
+
         <ConfettiCannon
           count={50}
           origin={{ x: 200, y: 300 }}
@@ -536,6 +584,43 @@ export default function HabitsScreen() {
         />
       </LinearGradient>
     </ImageBackground>
+  );
+}
+
+function FloatingReward({ xp, energy, x, y }: { xp: number; energy: number; x: number; y: number }) {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -100,
+        duration: 2000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: 2000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [translateY, opacity]);
+
+  return (
+    <Animated.View
+      style={[
+        styles.floatingReward,
+        {
+          left: x,
+          top: y,
+          transform: [{ translateY }],
+          opacity,
+        },
+      ]}
+    >
+      <Text style={styles.floatingText}>+{xp} 🏆</Text>
+      <Text style={styles.floatingText}>+{energy} ⚡</Text>
+    </Animated.View>
   );
 }
 

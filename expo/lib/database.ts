@@ -290,466 +290,438 @@ export function getCurrentUserId(): string | null {
   return currentUserId;
 }
 
-const SCHEMA_STATEMENTS = [
-  `CREATE TABLE IF NOT EXISTS user_profile (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    fullName TEXT NOT NULL,
-    email TEXT NOT NULL,
-    totalXp INTEGER NOT NULL DEFAULT 0,
-    totalEnergy INTEGER NOT NULL DEFAULT 0,
-    currentStreak INTEGER NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS manifestations (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    category TEXT NOT NULL,
-    intention TEXT NOT NULL,
-    images TEXT NOT NULL,
-    isFavorite INTEGER NOT NULL DEFAULT 0,
-    orderIndex INTEGER NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS goals (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    targetDate INTEGER,
-    status TEXT NOT NULL,
-    progress INTEGER NOT NULL DEFAULT 0,
-    streak INTEGER NOT NULL DEFAULT 0,
-    bestStreak INTEGER NOT NULL DEFAULT 0,
-    lastCompletedDate INTEGER,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS goal_checklist_items (
-    id TEXT PRIMARY KEY,
-    goalId TEXT NOT NULL,
-    text TEXT NOT NULL,
-    isDone INTEGER NOT NULL,
-    FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
-  );`,
-  `CREATE TABLE IF NOT EXISTS goal_completions (
-    id TEXT PRIMARY KEY,
-    goalId TEXT NOT NULL,
-    completionDate INTEGER NOT NULL,
-    notes TEXT NOT NULL DEFAULT '',
-    completedAt INTEGER NOT NULL,
-    FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
-  );`,
-  `CREATE TABLE IF NOT EXISTS habits (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    name TEXT NOT NULL,
-    icon TEXT NOT NULL DEFAULT '✨',
-    goal INTEGER NOT NULL DEFAULT 1,
-    goalUnit TEXT,
-    type TEXT NOT NULL DEFAULT 'checkbox',
-    frequencyType TEXT NOT NULL,
-    customDays TEXT NOT NULL,
-    currentProgress INTEGER NOT NULL DEFAULT 0,
-    streak INTEGER NOT NULL DEFAULT 0,
-    xpReward INTEGER NOT NULL DEFAULT 5,
-    energyReward INTEGER NOT NULL DEFAULT 1,
-    color TEXT NOT NULL DEFAULT '#6366f1',
-    lastCompletedDate TEXT NOT NULL DEFAULT '',
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS habit_completions (
-    id TEXT PRIMARY KEY,
-    habitId TEXT NOT NULL,
-    completionDate INTEGER NOT NULL,
-    value INTEGER NOT NULL DEFAULT 1,
-    notes TEXT NOT NULL DEFAULT '',
-    completedAt INTEGER NOT NULL,
-    FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
-  );`,
-  `CREATE TABLE IF NOT EXISTS transactions (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    amount REAL NOT NULL,
-    category TEXT NOT NULL,
-    note TEXT NOT NULL,
-    dayOfWeek INTEGER,
-    time TEXT,
-    reminderEnabled INTEGER NOT NULL DEFAULT 0,
-    reminderTime INTEGER,
-    isRecurring INTEGER NOT NULL DEFAULT 0
-  );`,
-  `CREATE TABLE IF NOT EXISTS financial_income (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    incomeGross REAL NOT NULL,
-    incomeNet REAL NOT NULL,
-    taxAmount REAL NOT NULL DEFAULT 0,
-    taxPercentage REAL NOT NULL DEFAULT 0,
-    deductions REAL NOT NULL DEFAULT 0,
-    incomeCategory TEXT NOT NULL,
-    incomeDate INTEGER NOT NULL,
-    notes TEXT NOT NULL DEFAULT '',
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS financial_expenses (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    expenseName TEXT NOT NULL,
-    expenseAmount REAL NOT NULL,
-    expenseCategory TEXT NOT NULL,
-    expenseDate INTEGER NOT NULL,
-    notes TEXT NOT NULL DEFAULT '',
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS financial_notes (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    noteLoginInfo TEXT NOT NULL DEFAULT '',
-    noteTotalDebt TEXT NOT NULL DEFAULT '',
-    debtAmount REAL NOT NULL DEFAULT 0,
-    debtDueDate INTEGER,
-    savingsAmount REAL NOT NULL DEFAULT 0,
-    emergencyFund REAL NOT NULL DEFAULT 0,
-    savingsNotes TEXT NOT NULL DEFAULT '',
-    updatedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS meals (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    calories REAL NOT NULL,
-    protein REAL,
-    carbs REAL,
-    fat REAL,
-    notes TEXT NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS food_logs (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    foodName TEXT NOT NULL,
-    servingDescription TEXT NOT NULL DEFAULT '',
-    calories REAL NOT NULL,
-    proteinGrams REAL,
-    carbGrams REAL,
-    fatGrams REAL,
-    sugarGrams REAL,
-    fiberGrams REAL,
-    mealType TEXT NOT NULL,
-    sourceType TEXT NOT NULL DEFAULT 'manual',
-    loggedAt INTEGER NOT NULL,
-    isLocked INTEGER NOT NULL DEFAULT 1,
-    calendarEventId TEXT
-  );`,
-  `CREATE TABLE IF NOT EXISTS saved_foods (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    foodName TEXT NOT NULL,
-    servingDescription TEXT NOT NULL DEFAULT '',
-    calories REAL NOT NULL,
-    proteinGrams REAL,
-    carbGrams REAL,
-    fatGrams REAL,
-    sugarGrams REAL,
-    fiberGrams REAL,
-    tags TEXT NOT NULL DEFAULT '[]',
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS nutrition_goals (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    dailyCalories INTEGER NOT NULL DEFAULT 2000,
-    dailyProtein INTEGER NOT NULL DEFAULT 150,
-    dailyCarbs INTEGER NOT NULL DEFAULT 250,
-    dailyFat INTEGER NOT NULL DEFAULT 65,
-    dailySugar INTEGER NOT NULL DEFAULT 50,
-    dailyFiber INTEGER NOT NULL DEFAULT 30,
-    updatedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS planned_meals (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    slot TEXT NOT NULL,
-    name TEXT NOT NULL,
-    notes TEXT NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS tasks (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    notes TEXT NOT NULL,
-    dueDate INTEGER,
-    dueTime TEXT,
-    isDone INTEGER NOT NULL,
-    orderIndex INTEGER NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL,
-    updatedAt INTEGER NOT NULL,
-    completedDate INTEGER,
-    reminderEnabled INTEGER NOT NULL DEFAULT 0,
-    reminderTime INTEGER,
-    notificationId TEXT,
-    priority TEXT
-  );`,
-  `CREATE TABLE IF NOT EXISTS gratitude_entries (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    entryDate INTEGER NOT NULL,
-    gratitude1 TEXT NOT NULL,
-    gratitude2 TEXT,
-    gratitude3 TEXT,
-    mood TEXT,
-    dailyReflection TEXT,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS affirmations (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    text TEXT NOT NULL,
-    category TEXT NOT NULL,
-    isFavorite INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS workouts (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    type TEXT NOT NULL,
-    durationMinutes INTEGER NOT NULL,
-    caloriesBurned INTEGER,
-    notes TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS body_metrics (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    weight REAL,
-    waist REAL,
-    chest REAL,
-    hips REAL,
-    arms REAL,
-    thighs REAL,
-    bodyFatPercentage REAL,
-    muscleMass REAL,
-    notes TEXT NOT NULL DEFAULT '',
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS appointments (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    date INTEGER NOT NULL,
-    time TEXT NOT NULL,
-    category TEXT NOT NULL,
-    notes TEXT NOT NULL DEFAULT '',
-    reminder INTEGER NOT NULL DEFAULT 1,
-    createdAt INTEGER NOT NULL,
-    metadata TEXT
-  );`,
-  `CREATE TABLE IF NOT EXISTS user_nutrition_profiles (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    height REAL NOT NULL,
-    heightUnit TEXT NOT NULL DEFAULT 'cm',
-    weight REAL NOT NULL,
-    weightUnit TEXT NOT NULL DEFAULT 'kg',
-    targetWeight REAL NOT NULL,
-    age INTEGER NOT NULL,
-    gender TEXT NOT NULL,
-    activityLevel TEXT NOT NULL,
-    goal TEXT NOT NULL,
-    weeklyGoal REAL NOT NULL DEFAULT 0.5,
-    dailyCalorieTarget INTEGER NOT NULL DEFAULT 2000,
-    dailyProteinTarget INTEGER NOT NULL DEFAULT 150,
-    dailyCarbsTarget INTEGER NOT NULL DEFAULT 250,
-    dailyFatTarget INTEGER NOT NULL DEFAULT 65,
-    dailyWaterTarget INTEGER NOT NULL DEFAULT 2000,
-    dailyFiberTarget INTEGER NOT NULL DEFAULT 25,
-    manualMacros INTEGER NOT NULL DEFAULT 0,
-    updatedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS water_logs (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    amount REAL NOT NULL,
-    unit TEXT NOT NULL DEFAULT 'ml',
-    loggedAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS meal_prep_plans (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    weekStartDate INTEGER NOT NULL,
-    dayOfWeek INTEGER NOT NULL,
-    mealType TEXT NOT NULL,
-    foodName TEXT NOT NULL,
-    calories REAL NOT NULL,
-    protein REAL,
-    carbs REAL,
-    fat REAL,
-    servingSize TEXT NOT NULL DEFAULT '',
-    notes TEXT NOT NULL DEFAULT '',
-    isCompleted INTEGER NOT NULL DEFAULT 0,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS fitness_goals (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    metric TEXT NOT NULL,
-    dailyTarget INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS workout_templates (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    title TEXT NOT NULL,
-    category TEXT NOT NULL,
-    durationMinutes INTEGER NOT NULL,
-    intensity TEXT NOT NULL,
-    equipment TEXT NOT NULL,
-    description TEXT NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS workout_sessions (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    templateId TEXT NOT NULL,
-    startedAt INTEGER NOT NULL,
-    endedAt INTEGER,
-    durationMinutes INTEGER NOT NULL,
-    completed INTEGER NOT NULL,
-    caloriesEstimate INTEGER,
-    source TEXT NOT NULL,
-    FOREIGN KEY (templateId) REFERENCES workout_templates(id) ON DELETE CASCADE
-  );`,
-  `CREATE TABLE IF NOT EXISTS normalized_metrics (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    date TEXT NOT NULL,
-    activeMinutes INTEGER NOT NULL DEFAULT 0,
-    caloriesActive INTEGER NOT NULL DEFAULT 0,
-    steps INTEGER NOT NULL DEFAULT 0,
-    source TEXT NOT NULL,
-    deviceType TEXT NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS fitness_plans (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    name TEXT NOT NULL,
-    daysPerWeek INTEGER NOT NULL,
-    preferredCategories TEXT NOT NULL,
-    durationRangeMin INTEGER NOT NULL,
-    durationRangeMax INTEGER NOT NULL,
-    intensity TEXT NOT NULL,
-    equipment TEXT NOT NULL,
-    active INTEGER NOT NULL,
-    createdAt INTEGER NOT NULL
-  );`,
-  `CREATE TABLE IF NOT EXISTS awards (
-    id TEXT PRIMARY KEY,
-    userId TEXT NOT NULL,
-    code TEXT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    earnedAt INTEGER
-  );`,
-];
-
-export async function resetDatabaseFile(): Promise<void> {
-  if (Platform.OS === 'web') {
-    Object.keys(webStore).forEach(key => { webStore[key] = []; });
-    console.log('[Database] Web store reset');
-    return;
-  }
-  try {
-    if (db) {
-      await db.closeAsync();
-      db = null;
-    }
-  } catch (e) {
-    console.log('[Database] Error closing DB before reset:', e);
-  }
-  dbInitPromise = null;
-  try {
-    const dbDir = `${SQLite.SQLiteDatabase.defaultDatabaseDirectory ?? 'SQLite'}`;
-    const fileSystem = await import('expo-file-system');
-    const dbPath = `${fileSystem.documentDirectory ?? ''}SQLite/alchemize.db`;
-    await fileSystem.deleteAsync(dbPath, { idempotent: true });
-    console.log('[Database] Deleted database file');
-  } catch (e) {
-    console.log('[Database] Could not delete DB file (may not exist):', e);
-  }
-}
-
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
   if (db) return db;
   if (dbInitPromise) return dbInitPromise;
-
+  
   if (Platform.OS === 'web') {
     console.log('[Database] Disabled on web - using memory-only mode');
     return null;
   }
-
+  
   dbInitPromise = (async () => {
     try {
       db = await SQLite.openDatabaseAsync('alchemize.db');
-    } catch (openError) {
-      console.warn('[Database] First open attempt failed, trying recovery:', openError);
-      try {
-        const fileSystem = await import('expo-file-system');
-        const dbPath = `${fileSystem.documentDirectory ?? ''}SQLite/alchemize.db`;
-        await fileSystem.deleteAsync(dbPath, { idempotent: true });
-        console.log('[Database] Deleted corrupted DB file, retrying open');
-        db = await SQLite.openDatabaseAsync('alchemize.db');
-      } catch (retryError) {
-        console.error('[Database] Failed to open database after recovery attempt:', retryError);
-        dbInitPromise = null;
-        throw retryError;
-      }
+    } catch (error) {
+      console.error('[Database] Failed to open database:', error);
+      dbInitPromise = null;
+      throw error;
     }
     return db;
   })();
   await dbInitPromise;
   if (!db) throw new Error('Database failed to open');
-  const initializedDb = db;
-
+  const initializedDb = db as SQLite.SQLiteDatabase;
+  
   try {
-    try {
-      await initializedDb.execAsync('PRAGMA journal_mode = WAL;');
-      console.log('[Database] WAL mode enabled');
-    } catch (walError) {
-      console.warn('[Database] WAL mode not available (non-fatal):', walError);
-    }
-
-    let failedTables = 0;
-    for (let i = 0; i < SCHEMA_STATEMENTS.length; i++) {
-      const stmt = SCHEMA_STATEMENTS[i];
-      const firstLine = stmt.split('\n')[0].trim();
-      try {
-        await initializedDb.execAsync(stmt);
-      } catch (stmtError) {
-        console.error(`[Database] Failed to create table #${i} (${firstLine}):`, stmtError);
-        console.error('[Database] Offending SQL:\n', stmt);
-        failedTables++;
-      }
-    }
-
-    if (failedTables > 0) {
-      console.warn(`[Database] ${failedTables} table(s) failed to create`);
-    } else {
-      console.log('[Database] All tables created successfully');
-    }
-
+    await initializedDb.execAsync('PRAGMA journal_mode = WAL;');
+    
+    await initializedDb.execAsync(`
+      CREATE TABLE IF NOT EXISTS user_profile (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      fullName TEXT NOT NULL,
+      email TEXT NOT NULL,
+      totalXp INTEGER NOT NULL DEFAULT 0,
+      totalEnergy INTEGER NOT NULL DEFAULT 0,
+      currentStreak INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS manifestations (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      category TEXT NOT NULL,
+      intention TEXT NOT NULL,
+      images TEXT NOT NULL,
+      isFavorite INTEGER NOT NULL DEFAULT 0,
+      orderIndex INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS goals (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      targetDate INTEGER,
+      status TEXT NOT NULL,
+      progress INTEGER NOT NULL DEFAULT 0,
+      streak INTEGER NOT NULL DEFAULT 0,
+      bestStreak INTEGER NOT NULL DEFAULT 0,
+      lastCompletedDate INTEGER,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS goal_checklist_items (
+      id TEXT PRIMARY KEY,
+      goalId TEXT NOT NULL,
+      text TEXT NOT NULL,
+      isDone INTEGER NOT NULL,
+      FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
+    );
+    
+    CREATE TABLE IF NOT EXISTS goal_completions (
+      id TEXT PRIMARY KEY,
+      goalId TEXT NOT NULL,
+      completionDate INTEGER NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      completedAt INTEGER NOT NULL,
+      FOREIGN KEY (goalId) REFERENCES goals(id) ON DELETE CASCADE
+    );
+    
+    CREATE TABLE IF NOT EXISTS habits (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      icon TEXT NOT NULL DEFAULT '✨',
+      goal INTEGER NOT NULL DEFAULT 1,
+      goalUnit TEXT,
+      type TEXT NOT NULL DEFAULT 'checkbox',
+      frequencyType TEXT NOT NULL,
+      customDays TEXT NOT NULL,
+      currentProgress INTEGER NOT NULL DEFAULT 0,
+      streak INTEGER NOT NULL DEFAULT 0,
+      xpReward INTEGER NOT NULL DEFAULT 5,
+      energyReward INTEGER NOT NULL DEFAULT 1,
+      color TEXT NOT NULL DEFAULT '#6366f1',
+      lastCompletedDate TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS habit_completions (
+      id TEXT PRIMARY KEY,
+      habitId TEXT NOT NULL,
+      completionDate INTEGER NOT NULL,
+      value INTEGER NOT NULL DEFAULT 1,
+      notes TEXT NOT NULL DEFAULT '',
+      completedAt INTEGER NOT NULL,
+      FOREIGN KEY (habitId) REFERENCES habits(id) ON DELETE CASCADE
+    );
+    
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      category TEXT NOT NULL,
+      note TEXT NOT NULL,
+      dayOfWeek INTEGER,
+      time TEXT,
+      reminderEnabled INTEGER NOT NULL DEFAULT 0,
+      reminderTime INTEGER,
+      isRecurring INTEGER NOT NULL DEFAULT 0
+    );
+    
+    CREATE TABLE IF NOT EXISTS financial_income (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      incomeGross REAL NOT NULL,
+      incomeNet REAL NOT NULL,
+      taxAmount REAL NOT NULL DEFAULT 0,
+      taxPercentage REAL NOT NULL DEFAULT 0,
+      deductions REAL NOT NULL DEFAULT 0,
+      incomeCategory TEXT NOT NULL,
+      incomeDate INTEGER NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS financial_expenses (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      expenseName TEXT NOT NULL,
+      expenseAmount REAL NOT NULL,
+      expenseCategory TEXT NOT NULL,
+      expenseDate INTEGER NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS financial_notes (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      noteLoginInfo TEXT NOT NULL DEFAULT '',
+      noteTotalDebt TEXT NOT NULL DEFAULT '',
+      debtAmount REAL NOT NULL DEFAULT 0,
+      debtDueDate INTEGER,
+      savingsAmount REAL NOT NULL DEFAULT 0,
+      emergencyFund REAL NOT NULL DEFAULT 0,
+      savingsNotes TEXT NOT NULL DEFAULT '',
+      updatedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS meals (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      calories REAL NOT NULL,
+      protein REAL,
+      carbs REAL,
+      fat REAL,
+      notes TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS food_logs (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      foodName TEXT NOT NULL,
+      servingDescription TEXT NOT NULL DEFAULT '',
+      calories REAL NOT NULL,
+      proteinGrams REAL,
+      carbGrams REAL,
+      fatGrams REAL,
+      sugarGrams REAL,
+      fiberGrams REAL,
+      mealType TEXT NOT NULL,
+      sourceType TEXT NOT NULL DEFAULT 'manual',
+      loggedAt INTEGER NOT NULL,
+      isLocked INTEGER NOT NULL DEFAULT 1,
+      calendarEventId TEXT
+    );
+    
+    CREATE TABLE IF NOT EXISTS saved_foods (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      foodName TEXT NOT NULL,
+      servingDescription TEXT NOT NULL DEFAULT '',
+      calories REAL NOT NULL,
+      proteinGrams REAL,
+      carbGrams REAL,
+      fatGrams REAL,
+      sugarGrams REAL,
+      fiberGrams REAL,
+      tags TEXT NOT NULL DEFAULT '[]',
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS nutrition_goals (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      dailyCalories INTEGER NOT NULL DEFAULT 2000,
+      dailyProtein INTEGER NOT NULL DEFAULT 150,
+      dailyCarbs INTEGER NOT NULL DEFAULT 250,
+      dailyFat INTEGER NOT NULL DEFAULT 65,
+      dailySugar INTEGER NOT NULL DEFAULT 50,
+      dailyFiber INTEGER NOT NULL DEFAULT 30,
+      updatedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS planned_meals (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      slot TEXT NOT NULL,
+      name TEXT NOT NULL,
+      notes TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      notes TEXT NOT NULL,
+      dueDate INTEGER,
+      dueTime TEXT,
+      isDone INTEGER NOT NULL,
+      orderIndex INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      completedDate INTEGER,
+      reminderEnabled INTEGER NOT NULL DEFAULT 0,
+      reminderTime INTEGER,
+      notificationId TEXT,
+      priority TEXT
+    );
+    
+    CREATE TABLE IF NOT EXISTS gratitude_entries (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      entryDate INTEGER NOT NULL,
+      gratitude1 TEXT NOT NULL,
+      gratitude2 TEXT,
+      gratitude3 TEXT,
+      mood TEXT,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS affirmations (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      text TEXT NOT NULL,
+      category TEXT NOT NULL,
+      isFavorite INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS workouts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      durationMinutes INTEGER NOT NULL,
+      caloriesBurned INTEGER,
+      notes TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS body_metrics (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      weight REAL,
+      waist REAL,
+      chest REAL,
+      hips REAL,
+      arms REAL,
+      thighs REAL,
+      bodyFatPercentage REAL,
+      muscleMass REAL,
+      notes TEXT NOT NULL DEFAULT '',
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS appointments (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      date INTEGER NOT NULL,
+      time TEXT NOT NULL,
+      category TEXT NOT NULL,
+      notes TEXT NOT NULL DEFAULT '',
+      reminder INTEGER NOT NULL DEFAULT 1,
+      createdAt INTEGER NOT NULL,
+      metadata TEXT
+    );
+    
+    CREATE TABLE IF NOT EXISTS user_nutrition_profiles (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      height REAL NOT NULL,
+      heightUnit TEXT NOT NULL DEFAULT 'cm',
+      weight REAL NOT NULL,
+      weightUnit TEXT NOT NULL DEFAULT 'kg',
+      targetWeight REAL NOT NULL,
+      age INTEGER NOT NULL,
+      gender TEXT NOT NULL,
+      activityLevel TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      weeklyGoal REAL NOT NULL DEFAULT 0.5,
+      dailyCalorieTarget INTEGER NOT NULL DEFAULT 2000,
+      dailyProteinTarget INTEGER NOT NULL DEFAULT 150,
+      dailyCarbsTarget INTEGER NOT NULL DEFAULT 250,
+      dailyFatTarget INTEGER NOT NULL DEFAULT 65,
+      dailyWaterTarget INTEGER NOT NULL DEFAULT 2000,
+      dailyFiberTarget INTEGER NOT NULL DEFAULT 25,
+      manualMacros INTEGER NOT NULL DEFAULT 0,
+      updatedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS water_logs (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      amount REAL NOT NULL,
+      unit TEXT NOT NULL DEFAULT 'ml',
+      loggedAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS meal_prep_plans (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      weekStartDate INTEGER NOT NULL,
+      dayOfWeek INTEGER NOT NULL,
+      mealType TEXT NOT NULL,
+      foodName TEXT NOT NULL,
+      calories REAL NOT NULL,
+      protein REAL,
+      carbs REAL,
+      fat REAL,
+      servingSize TEXT NOT NULL DEFAULT '',
+      notes TEXT NOT NULL DEFAULT '',
+      isCompleted INTEGER NOT NULL DEFAULT 0,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS fitness_goals (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      metric TEXT NOT NULL,
+      dailyTarget INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS workout_templates (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL,
+      durationMinutes INTEGER NOT NULL,
+      intensity TEXT NOT NULL,
+      equipment TEXT NOT NULL,
+      description TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS workout_sessions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      templateId TEXT NOT NULL,
+      startedAt INTEGER NOT NULL,
+      endedAt INTEGER,
+      durationMinutes INTEGER NOT NULL,
+      completed INTEGER NOT NULL,
+      caloriesEstimate INTEGER,
+      source TEXT NOT NULL,
+      FOREIGN KEY (templateId) REFERENCES workout_templates(id) ON DELETE CASCADE
+    );
+    
+    CREATE TABLE IF NOT EXISTS normalized_metrics (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      date TEXT NOT NULL,
+      activeMinutes INTEGER NOT NULL DEFAULT 0,
+      caloriesActive INTEGER NOT NULL DEFAULT 0,
+      steps INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL,
+      deviceType TEXT NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS fitness_plans (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      daysPerWeek INTEGER NOT NULL,
+      preferredCategories TEXT NOT NULL,
+      durationRangeMin INTEGER NOT NULL,
+      durationRangeMax INTEGER NOT NULL,
+      intensity TEXT NOT NULL,
+      equipment TEXT NOT NULL,
+      active INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL
+    );
+    
+    CREATE TABLE IF NOT EXISTS awards (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      code TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      earnedAt INTEGER
+    );
+    `);
+    
+    console.log('[Database] Tables created successfully');
+    
     if (db) await runMigrations(db);
   } catch (error) {
-    console.error('[Database] Failed during schema setup:', error);
+    console.error('[Database] Failed to create tables:', error);
     throw error;
   }
-
+  
   console.log('[Database] Initialized successfully');
   return db;
 }
@@ -835,40 +807,20 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
       }
     }
     
-    const gratitudeHasReflection = await checkColumn('gratitude_entries', 'dailyReflection');
-    if (!gratitudeHasReflection) {
-      console.log('[Database] Adding dailyReflection column to gratitude_entries');
-      try {
-        await database.execAsync('ALTER TABLE gratitude_entries ADD COLUMN dailyReflection TEXT');
-        console.log('[Database] Successfully added dailyReflection column');
-      } catch (e) {
-        console.log('[Database] dailyReflection column may already exist:', e);
-      }
-    }
-
     const gratitudeExists = await checkColumn('gratitude_entries', 'id');
     if (gratitudeExists) {
       const gratitudeHasEntryDate = await checkColumn('gratitude_entries', 'entryDate');
       const hasDateColumn = await checkColumn('gratitude_entries', 'date');
       
-      const runSafe = async (label: string, sql: string) => {
-        try {
-          await database.execAsync(sql);
-        } catch (e) {
-          console.error(`[Database] Migration step failed (${label}):`, e, '\nSQL:', sql);
-          throw e;
-        }
-      };
-
       if (!gratitudeHasEntryDate && hasDateColumn) {
         console.log('[Database] Migrating gratitude_entries: date -> entryDate');
         try {
-          await runSafe('rename date->entryDate', 'ALTER TABLE gratitude_entries RENAME COLUMN date TO entryDate;');
+          await database.execAsync('ALTER TABLE gratitude_entries RENAME COLUMN date TO entryDate;');
           console.log('[Database] Successfully renamed date to entryDate');
         } catch (renameError) {
-          console.error('[Database] Falling back to table recreation:', renameError);
-          try { await runSafe('drop gratitude_new', 'DROP TABLE IF EXISTS gratitude_entries_new;'); } catch {}
-          await runSafe('create gratitude_new', `CREATE TABLE gratitude_entries_new (
+          console.error('[Database] Failed to rename column, attempting workaround:', renameError);
+          await database.execAsync(`
+            CREATE TABLE gratitude_entries_new (
               id TEXT PRIMARY KEY,
               entryDate INTEGER NOT NULL,
               gratitude1 TEXT NOT NULL,
@@ -876,20 +828,17 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
               gratitude3 TEXT,
               mood TEXT,
               createdAt INTEGER NOT NULL
-            );`);
-          try {
-            await runSafe('copy gratitude data', 'INSERT INTO gratitude_entries_new SELECT id, date as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;');
-          } catch (copyErr) {
-            console.warn('[Database] Could not copy gratitude rows (continuing):', copyErr);
-          }
-          await runSafe('drop old gratitude', 'DROP TABLE gratitude_entries;');
-          await runSafe('rename gratitude_new', 'ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;');
+            );
+            INSERT INTO gratitude_entries_new SELECT id, date as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;
+            DROP TABLE gratitude_entries;
+            ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;
+          `);
           console.log('[Database] Successfully migrated via table recreation');
         }
       } else if (!gratitudeHasEntryDate && !hasDateColumn) {
         console.log('[Database] gratitude_entries missing entryDate column - rebuilding table');
-        try { await runSafe('drop gratitude_new', 'DROP TABLE IF EXISTS gratitude_entries_new;'); } catch {}
-        await runSafe('create gratitude_new', `CREATE TABLE gratitude_entries_new (
+        await database.execAsync(`
+          CREATE TABLE gratitude_entries_new (
             id TEXT PRIMARY KEY,
             entryDate INTEGER NOT NULL,
             gratitude1 TEXT NOT NULL,
@@ -897,20 +846,21 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
             gratitude3 TEXT,
             mood TEXT,
             createdAt INTEGER NOT NULL
-          );`);
-
+          );
+        `);
+        
         const hasData = await database.getFirstAsync('SELECT COUNT(*) as count FROM gratitude_entries');
         if (hasData && (hasData as any).count > 0) {
           console.log('[Database] Attempting to preserve existing data');
           try {
-            await runSafe('preserve gratitude data', 'INSERT INTO gratitude_entries_new SELECT id, createdAt as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries;');
+            await database.execAsync('INSERT INTO gratitude_entries_new SELECT id, createdAt as entryDate, gratitude1, gratitude2, gratitude3, mood, createdAt FROM gratitude_entries');
           } catch (e) {
             console.error('[Database] Could not preserve data:', e);
           }
         }
-
-        await runSafe('drop gratitude', 'DROP TABLE gratitude_entries;');
-        await runSafe('rename gratitude_new', 'ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries;');
+        
+        await database.execAsync('DROP TABLE gratitude_entries');
+        await database.execAsync('ALTER TABLE gratitude_entries_new RENAME TO gratitude_entries');
         console.log('[Database] Table rebuilt with entryDate column');
       }
     }
@@ -980,21 +930,32 @@ export async function resetDatabase() {
     return;
   }
   const database = await ensureDatabase();
-  const tablesToWipe = [
-    'user_profile', 'manifestations', 'goals', 'goal_checklist_items',
-    'habits', 'habit_completions', 'transactions', 'financial_income',
-    'financial_expenses', 'financial_notes', 'meals', 'food_logs',
-    'saved_foods', 'nutrition_goals', 'planned_meals', 'tasks',
-    'gratitude_entries', 'affirmations', 'workouts', 'body_metrics',
-    'appointments', 'user_nutrition_profiles', 'water_logs', 'meal_prep_plans',
-  ];
-  for (const table of tablesToWipe) {
-    try {
-      await database.execAsync(`DELETE FROM ${table};`);
-    } catch (e) {
-      console.warn(`[Database] Could not clear ${table}:`, e);
-    }
-  }
+  await database.execAsync(`
+    DELETE FROM user_profile;
+    DELETE FROM manifestations;
+    DELETE FROM goals;
+    DELETE FROM goal_checklist_items;
+    DELETE FROM habits;
+    DELETE FROM habit_completions;
+    DELETE FROM transactions;
+    DELETE FROM financial_income;
+    DELETE FROM financial_expenses;
+    DELETE FROM financial_notes;
+    DELETE FROM meals;
+    DELETE FROM food_logs;
+    DELETE FROM saved_foods;
+    DELETE FROM nutrition_goals;
+    DELETE FROM planned_meals;
+    DELETE FROM tasks;
+    DELETE FROM gratitude_entries;
+    DELETE FROM affirmations;
+    DELETE FROM workouts;
+    DELETE FROM body_metrics;
+    DELETE FROM appointments;
+    DELETE FROM user_nutrition_profiles;
+    DELETE FROM water_logs;
+    DELETE FROM meal_prep_plans;
+  `);
   console.log('Database reset');
 }
 
@@ -1371,22 +1332,20 @@ export const financialNoteDb = {
 export const mealsDb = {
   async getAll(): Promise<Meal[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<Meal>('SELECT * FROM meals WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY date DESC', [userId]);
+    return database.getAllAsync<Meal>('SELECT * FROM meals ORDER BY date DESC');
   },
-
+  
   async create(meal: Meal): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO meals (id, userId, date, name, calories, protein, carbs, fat, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [meal.id, currentUserId || '', meal.date, meal.name, meal.calories, meal.protein, meal.carbs, meal.fat, meal.notes]
+      'INSERT INTO meals (id, date, name, calories, protein, carbs, fat, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [meal.id, meal.date, meal.name, meal.calories, meal.protein, meal.carbs, meal.fat, meal.notes]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM meals WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM meals WHERE id = ?', [id]);
   },
 };
 
@@ -1431,43 +1390,39 @@ export const foodLogsDb = {
 export const savedFoodsDb = {
   async getAll(): Promise<SavedFood[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    const rows = await database.getAllAsync<any>('SELECT * FROM saved_foods WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY foodName', [userId]);
+    const rows = await database.getAllAsync<any>('SELECT * FROM saved_foods ORDER BY foodName');
     return rows.map(row => ({
       ...row,
       tags: JSON.parse(row.tags),
     }));
   },
-
+  
   async create(food: SavedFood): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO saved_foods (id, userId, foodName, servingDescription, calories, proteinGrams, carbGrams, fatGrams, sugarGrams, fiberGrams, tags, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [food.id, currentUserId || '', food.foodName, food.servingDescription, food.calories, food.proteinGrams, food.carbGrams, food.fatGrams, food.sugarGrams, food.fiberGrams, JSON.stringify(food.tags), food.createdAt]
+      'INSERT INTO saved_foods (id, foodName, servingDescription, calories, proteinGrams, carbGrams, fatGrams, sugarGrams, fiberGrams, tags, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [food.id, food.foodName, food.servingDescription, food.calories, food.proteinGrams, food.carbGrams, food.fatGrams, food.sugarGrams, food.fiberGrams, JSON.stringify(food.tags), food.createdAt]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM saved_foods WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM saved_foods WHERE id = ?', [id]);
   },
 };
 
 export const nutritionGoalDb = {
   async get(): Promise<NutritionGoal | null> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getFirstAsync<NutritionGoal>('SELECT * FROM nutrition_goals WHERE userId = ? OR userId = \'\' OR userId IS NULL LIMIT 1', [userId]);
+    return database.getFirstAsync<NutritionGoal>('SELECT * FROM nutrition_goals LIMIT 1');
   },
-
+  
   async createOrUpdate(goal: NutritionGoal): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      `INSERT OR REPLACE INTO nutrition_goals (id, userId, dailyCalories, dailyProtein, dailyCarbs, dailyFat, dailySugar, dailyFiber, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [goal.id, userId, goal.dailyCalories, goal.dailyProtein, goal.dailyCarbs, goal.dailyFat, goal.dailySugar, goal.dailyFiber, goal.updatedAt]
+      `INSERT OR REPLACE INTO nutrition_goals (id, dailyCalories, dailyProtein, dailyCarbs, dailyFat, dailySugar, dailyFiber, updatedAt) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [goal.id, goal.dailyCalories, goal.dailyProtein, goal.dailyCarbs, goal.dailyFat, goal.dailySugar, goal.dailyFiber, goal.updatedAt]
     );
   },
 };
@@ -1475,22 +1430,20 @@ export const nutritionGoalDb = {
 export const plannedMealsDb = {
   async getAll(): Promise<PlannedMeal[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<PlannedMeal>('SELECT * FROM planned_meals WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY date, slot', [userId]);
+    return database.getAllAsync<PlannedMeal>('SELECT * FROM planned_meals ORDER BY date, slot');
   },
-
+  
   async create(meal: PlannedMeal): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO planned_meals (id, userId, date, slot, name, notes) VALUES (?, ?, ?, ?, ?, ?)',
-      [meal.id, currentUserId || '', meal.date, meal.slot, meal.name, meal.notes]
+      'INSERT INTO planned_meals (id, date, slot, name, notes) VALUES (?, ?, ?, ?, ?)',
+      [meal.id, meal.date, meal.slot, meal.name, meal.notes]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM planned_meals WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM planned_meals WHERE id = ?', [id]);
   },
 };
 
@@ -1549,8 +1502,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, dailyReflection, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.dailyReflection, entry.createdAt]
+      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.createdAt]
     );
   },
   
@@ -1558,8 +1511,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ?, dailyReflection = ? WHERE id = ? AND userId = ?',
-      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.dailyReflection, entry.id, userId]
+      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ? WHERE id = ? AND userId = ?',
+      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.id, userId]
     );
   },
   
@@ -1612,44 +1565,40 @@ export const affirmationsDb = {
 export const workoutsDb = {
   async getAll(): Promise<Workout[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<Workout>('SELECT * FROM workouts WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY date DESC', [userId]);
+    return database.getAllAsync<Workout>('SELECT * FROM workouts ORDER BY date DESC');
   },
-
+  
   async create(workout: Workout): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO workouts (id, userId, type, durationMinutes, caloriesBurned, notes, date, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [workout.id, currentUserId || '', workout.type, workout.durationMinutes, workout.caloriesBurned, workout.notes, workout.date, workout.createdAt]
+      'INSERT INTO workouts (id, type, durationMinutes, caloriesBurned, notes, date, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [workout.id, workout.type, workout.durationMinutes, workout.caloriesBurned, workout.notes, workout.date, workout.createdAt]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM workouts WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM workouts WHERE id = ?', [id]);
   },
 };
 
 export const bodyMetricsDb = {
   async getAll(): Promise<BodyMetric[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<BodyMetric>('SELECT * FROM body_metrics WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY date DESC', [userId]);
+    return database.getAllAsync<BodyMetric>('SELECT * FROM body_metrics ORDER BY date DESC');
   },
-
+  
   async create(metric: BodyMetric): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO body_metrics (id, userId, date, weight, waist, chest, hips, arms, thighs, bodyFatPercentage, muscleMass, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [metric.id, currentUserId || '', metric.date, metric.weight, metric.waist, metric.chest, metric.hips, metric.arms, metric.thighs, metric.bodyFatPercentage, metric.muscleMass, metric.notes, metric.createdAt]
+      'INSERT INTO body_metrics (id, date, weight, waist, chest, hips, arms, thighs, bodyFatPercentage, muscleMass, notes, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [metric.id, metric.date, metric.weight, metric.waist, metric.chest, metric.hips, metric.arms, metric.thighs, metric.bodyFatPercentage, metric.muscleMass, metric.notes, metric.createdAt]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM body_metrics WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM body_metrics WHERE id = ?', [id]);
   },
 };
 
@@ -1714,31 +1663,28 @@ export const userNutritionProfileDb = {
 export const waterLogsDb = {
   async getAll(): Promise<WaterLog[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<WaterLog>('SELECT * FROM water_logs WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY loggedAt DESC', [userId]);
+    return database.getAllAsync<WaterLog>('SELECT * FROM water_logs ORDER BY loggedAt DESC');
   },
-
+  
   async getByDate(startOfDay: number, endOfDay: number): Promise<WaterLog[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     return database.getAllAsync<WaterLog>(
-      'SELECT * FROM water_logs WHERE (userId = ? OR userId = \'\' OR userId IS NULL) AND loggedAt >= ? AND loggedAt < ? ORDER BY loggedAt DESC',
-      [userId, startOfDay, endOfDay]
+      'SELECT * FROM water_logs WHERE loggedAt >= ? AND loggedAt < ? ORDER BY loggedAt DESC',
+      [startOfDay, endOfDay]
     );
   },
-
+  
   async create(log: WaterLog): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO water_logs (id, userId, amount, unit, loggedAt) VALUES (?, ?, ?, ?, ?)',
-      [log.id, currentUserId || '', log.amount, log.unit, log.loggedAt]
+      'INSERT INTO water_logs (id, amount, unit, loggedAt) VALUES (?, ?, ?, ?)',
+      [log.id, log.amount, log.unit, log.loggedAt]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM water_logs WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM water_logs WHERE id = ?', [id]);
   },
 };
 
@@ -1794,146 +1740,132 @@ export const mealPrepPlansDb = {
 export const fitnessGoalsDb = {
   async getAll(): Promise<FitnessGoal[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<FitnessGoal>('SELECT * FROM fitness_goals WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY createdAt DESC', [userId]);
+    return database.getAllAsync<FitnessGoal>('SELECT * FROM fitness_goals ORDER BY createdAt DESC');
   },
-
+  
   async create(goal: FitnessGoal): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO fitness_goals (id, userId, metric, dailyTarget, createdAt) VALUES (?, ?, ?, ?, ?)',
-      [goal.id, currentUserId || '', goal.metric, goal.dailyTarget, goal.createdAt]
+      'INSERT INTO fitness_goals (id, metric, dailyTarget, createdAt) VALUES (?, ?, ?, ?)',
+      [goal.id, goal.metric, goal.dailyTarget, goal.createdAt]
     );
   },
-
+  
   async update(goal: FitnessGoal): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE fitness_goals SET metric = ?, dailyTarget = ? WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-      [goal.metric, goal.dailyTarget, goal.id, userId]
+      'UPDATE fitness_goals SET metric = ?, dailyTarget = ? WHERE id = ?',
+      [goal.metric, goal.dailyTarget, goal.id]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM fitness_goals WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM fitness_goals WHERE id = ?', [id]);
   },
 };
 
 export const workoutTemplatesDb = {
   async getAll(): Promise<WorkoutTemplate[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<WorkoutTemplate>('SELECT * FROM workout_templates WHERE userId = ? OR userId = \'\' OR userId IS NULL', [userId]);
+    return database.getAllAsync<WorkoutTemplate>('SELECT * FROM workout_templates');
   },
-
+  
   async getById(id: string): Promise<WorkoutTemplate | null> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getFirstAsync<WorkoutTemplate>('SELECT * FROM workout_templates WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    return database.getFirstAsync<WorkoutTemplate>('SELECT * FROM workout_templates WHERE id = ?', [id]);
   },
-
+  
   async create(template: WorkoutTemplate): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO workout_templates (id, userId, title, category, durationMinutes, intensity, equipment, description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [template.id, currentUserId || '', template.title, template.category, template.durationMinutes, template.intensity, template.equipment, template.description]
+      'INSERT INTO workout_templates (id, title, category, durationMinutes, intensity, equipment, description) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [template.id, template.title, template.category, template.durationMinutes, template.intensity, template.equipment, template.description]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM workout_templates WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM workout_templates WHERE id = ?', [id]);
   },
 };
 
 export const workoutSessionsDb = {
   async getAll(): Promise<WorkoutSession[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    const rows = await database.getAllAsync<any>('SELECT * FROM workout_sessions WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY startedAt DESC', [userId]);
+    const rows = await database.getAllAsync<any>('SELECT * FROM workout_sessions ORDER BY startedAt DESC');
     return rows.map(row => ({
       ...row,
       completed: Boolean(row.completed),
     }));
   },
-
+  
   async getById(id: string): Promise<WorkoutSession | null> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    const row = await database.getFirstAsync<any>('SELECT * FROM workout_sessions WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    const row = await database.getFirstAsync<any>('SELECT * FROM workout_sessions WHERE id = ?', [id]);
     if (!row) return null;
     return {
       ...row,
       completed: Boolean(row.completed),
     };
   },
-
+  
   async create(session: WorkoutSession): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO workout_sessions (id, userId, templateId, startedAt, endedAt, durationMinutes, completed, caloriesEstimate, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [session.id, currentUserId || '', session.templateId, session.startedAt, session.endedAt, session.durationMinutes, session.completed ? 1 : 0, session.caloriesEstimate, session.source]
+      'INSERT INTO workout_sessions (id, templateId, startedAt, endedAt, durationMinutes, completed, caloriesEstimate, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [session.id, session.templateId, session.startedAt, session.endedAt, session.durationMinutes, session.completed ? 1 : 0, session.caloriesEstimate, session.source]
     );
   },
-
+  
   async update(session: WorkoutSession): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE workout_sessions SET endedAt = ?, durationMinutes = ?, completed = ?, caloriesEstimate = ? WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-      [session.endedAt, session.durationMinutes, session.completed ? 1 : 0, session.caloriesEstimate, session.id, userId]
+      'UPDATE workout_sessions SET endedAt = ?, durationMinutes = ?, completed = ?, caloriesEstimate = ? WHERE id = ?',
+      [session.endedAt, session.durationMinutes, session.completed ? 1 : 0, session.caloriesEstimate, session.id]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM workout_sessions WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM workout_sessions WHERE id = ?', [id]);
   },
 };
 
 export const normalizedMetricsDb = {
   async getAll(): Promise<NormalizedMetric[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<NormalizedMetric>('SELECT * FROM normalized_metrics WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY date DESC', [userId]);
+    return database.getAllAsync<NormalizedMetric>('SELECT * FROM normalized_metrics ORDER BY date DESC');
   },
-
+  
   async getByDate(date: string): Promise<NormalizedMetric | null> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getFirstAsync<NormalizedMetric>('SELECT * FROM normalized_metrics WHERE date = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [date, userId]);
+    return database.getFirstAsync<NormalizedMetric>('SELECT * FROM normalized_metrics WHERE date = ?', [date]);
   },
-
+  
   async create(metric: NormalizedMetric): Promise<void> {
     const database = await ensureDatabase();
     await database.runAsync(
-      'INSERT INTO normalized_metrics (id, userId, date, activeMinutes, caloriesActive, steps, source, deviceType) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [metric.id, currentUserId || '', metric.date, metric.activeMinutes, metric.caloriesActive, metric.steps, metric.source, metric.deviceType]
+      'INSERT INTO normalized_metrics (id, date, activeMinutes, caloriesActive, steps, source, deviceType) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [metric.id, metric.date, metric.activeMinutes, metric.caloriesActive, metric.steps, metric.source, metric.deviceType]
     );
   },
-
+  
   async update(metric: NormalizedMetric): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE normalized_metrics SET activeMinutes = ?, caloriesActive = ?, steps = ? WHERE date = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-      [metric.activeMinutes, metric.caloriesActive, metric.steps, metric.date, userId]
+      'UPDATE normalized_metrics SET activeMinutes = ?, caloriesActive = ?, steps = ? WHERE date = ?',
+      [metric.activeMinutes, metric.caloriesActive, metric.steps, metric.date]
     );
   },
-
+  
   async upsert(metric: NormalizedMetric): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     const existing = await this.getByDate(metric.date);
     if (existing) {
       await database.runAsync(
-        'UPDATE normalized_metrics SET activeMinutes = activeMinutes + ?, caloriesActive = caloriesActive + ?, steps = steps + ? WHERE date = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-        [metric.activeMinutes, metric.caloriesActive, metric.steps, metric.date, userId]
+        'UPDATE normalized_metrics SET activeMinutes = activeMinutes + ?, caloriesActive = caloriesActive + ?, steps = steps + ? WHERE date = ?',
+        [metric.activeMinutes, metric.caloriesActive, metric.steps, metric.date]
       );
     } else {
       await this.create(metric);
@@ -1944,19 +1876,17 @@ export const normalizedMetricsDb = {
 export const fitnessPlansDb = {
   async getAll(): Promise<FitnessPlan[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    const rows = await database.getAllAsync<any>('SELECT * FROM fitness_plans WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY createdAt DESC', [userId]);
+    const rows = await database.getAllAsync<any>('SELECT * FROM fitness_plans ORDER BY createdAt DESC');
     return rows.map(row => ({
       ...row,
       preferredCategories: JSON.parse(row.preferredCategories),
       active: Boolean(row.active),
     }));
   },
-
+  
   async getActive(): Promise<FitnessPlan | null> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    const row = await database.getFirstAsync<any>('SELECT * FROM fitness_plans WHERE active = 1 AND (userId = ? OR userId = \'\' OR userId IS NULL) LIMIT 1', [userId]);
+    const row = await database.getFirstAsync<any>('SELECT * FROM fitness_plans WHERE active = 1 LIMIT 1');
     if (!row) return null;
     return {
       ...row,
@@ -1964,66 +1894,59 @@ export const fitnessPlansDb = {
       active: Boolean(row.active),
     };
   },
-
+  
   async create(plan: FitnessPlan): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     if (plan.active) {
-      await database.runAsync('UPDATE fitness_plans SET active = 0 WHERE userId = ? OR userId = \'\' OR userId IS NULL', [userId]);
+      await database.runAsync('UPDATE fitness_plans SET active = 0');
     }
     await database.runAsync(
-      'INSERT INTO fitness_plans (id, userId, name, daysPerWeek, preferredCategories, durationRangeMin, durationRangeMax, intensity, equipment, active, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [plan.id, userId, plan.name, plan.daysPerWeek, JSON.stringify(plan.preferredCategories), plan.durationRangeMin, plan.durationRangeMax, plan.intensity, plan.equipment, plan.active ? 1 : 0, plan.createdAt]
+      'INSERT INTO fitness_plans (id, name, daysPerWeek, preferredCategories, durationRangeMin, durationRangeMax, intensity, equipment, active, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [plan.id, plan.name, plan.daysPerWeek, JSON.stringify(plan.preferredCategories), plan.durationRangeMin, plan.durationRangeMax, plan.intensity, plan.equipment, plan.active ? 1 : 0, plan.createdAt]
     );
   },
-
+  
   async update(plan: FitnessPlan): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     if (plan.active) {
-      await database.runAsync('UPDATE fitness_plans SET active = 0 WHERE id != ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [plan.id, userId]);
+      await database.runAsync('UPDATE fitness_plans SET active = 0 WHERE id != ?', [plan.id]);
     }
     await database.runAsync(
-      'UPDATE fitness_plans SET name = ?, daysPerWeek = ?, preferredCategories = ?, durationRangeMin = ?, durationRangeMax = ?, intensity = ?, equipment = ?, active = ? WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-      [plan.name, plan.daysPerWeek, JSON.stringify(plan.preferredCategories), plan.durationRangeMin, plan.durationRangeMax, plan.intensity, plan.equipment, plan.active ? 1 : 0, plan.id, userId]
+      'UPDATE fitness_plans SET name = ?, daysPerWeek = ?, preferredCategories = ?, durationRangeMin = ?, durationRangeMax = ?, intensity = ?, equipment = ?, active = ? WHERE id = ?',
+      [plan.name, plan.daysPerWeek, JSON.stringify(plan.preferredCategories), plan.durationRangeMin, plan.durationRangeMax, plan.intensity, plan.equipment, plan.active ? 1 : 0, plan.id]
     );
   },
-
+  
   async delete(id: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    await database.runAsync('DELETE FROM fitness_plans WHERE id = ? AND (userId = ? OR userId = \'\' OR userId IS NULL)', [id, userId]);
+    await database.runAsync('DELETE FROM fitness_plans WHERE id = ?', [id]);
   },
 };
 
 export const awardsDb = {
   async getAll(): Promise<Award[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<Award>('SELECT * FROM awards WHERE userId = ? OR userId = \'\' OR userId IS NULL ORDER BY earnedAt DESC', [userId]);
+    return database.getAllAsync<Award>('SELECT * FROM awards ORDER BY earnedAt DESC');
   },
-
+  
   async getEarned(): Promise<Award[]> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
-    return database.getAllAsync<Award>('SELECT * FROM awards WHERE earnedAt IS NOT NULL AND (userId = ? OR userId = \'\' OR userId IS NULL) ORDER BY earnedAt DESC', [userId]);
+    return database.getAllAsync<Award>('SELECT * FROM awards WHERE earnedAt IS NOT NULL ORDER BY earnedAt DESC');
   },
-
+  
   async create(award: Award): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT OR IGNORE INTO awards (id, userId, code, title, description, earnedAt) VALUES (?, ?, ?, ?, ?, ?)',
-      [award.id, userId, award.code, award.title, award.description, award.earnedAt]
+      'INSERT OR IGNORE INTO awards (id, code, title, description, earnedAt) VALUES (?, ?, ?, ?, ?)',
+      [award.id, award.code, award.title, award.description, award.earnedAt]
     );
   },
-
+  
   async markEarned(code: string): Promise<void> {
     const database = await ensureDatabase();
-    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE awards SET earnedAt = ? WHERE code = ? AND earnedAt IS NULL AND (userId = ? OR userId = \'\' OR userId IS NULL)',
-      [Date.now(), code, userId]
+      'UPDATE awards SET earnedAt = ? WHERE code = ? AND earnedAt IS NULL',
+      [Date.now(), code]
     );
   },
 };

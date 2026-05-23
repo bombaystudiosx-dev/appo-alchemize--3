@@ -1,26 +1,15 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useRouter, useRootNavigationState, useSegments } from 'expo-router';
-import React, { useEffect, useState, useRef } from 'react';
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ActivityIndicator,
-} from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemeProvider } from '@/contexts/theme-context';
-import { AuthProvider, useAuth } from '@/contexts/auth-context';
-import { initDatabase, resetDatabaseFile } from '@/lib/database';
-import NetworkBanner from '@/components/NetworkBanner';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import { registerForPushNotifications } from '@/lib/notifications';
-import { TERMS_ACCEPTED_KEY, TERMS_VERSION } from '@/app/terms';
-import OnboardingOverlay from '@/components/OnboardingOverlay';
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Stack, useRouter, useRootNavigationState } from "expo-router";
+import React, { useEffect } from "react";
+import { StyleSheet, Text, TouchableOpacity, Platform, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { ChevronLeft } from "lucide-react-native";
+import { ThemeProvider } from "@/contexts/theme-context";
+import { AuthProvider } from "@/contexts/auth-context";
+import { initDatabase } from "@/lib/database";
+import NetworkBanner from "@/components/NetworkBanner";
+import { registerForPushNotifications } from "@/lib/notifications";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,288 +20,123 @@ const queryClient = new QueryClient({
   },
 });
 
-function FloatingBackButton() {
+function BackButton() {
   const router = useRouter();
   const navState = useRootNavigationState();
-  const segments = useSegments();
-  const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const canGoBack = (navState?.routes?.length ?? 0) > 1;
-    const root = segments[0] as string | undefined;
-    const onAuthOrTerms = root === 'auth' || root === 'terms';
-    setVisible(canGoBack && !onAuthOrTerms);
-  }, [navState, segments]);
-
-  if (!visible) return null;
-
+  const canGoBack = (navState?.routes?.length ?? 0) > 1;
+  if (!canGoBack) return null;
   return (
     <TouchableOpacity
       onPress={() => router.back()}
-      style={[layoutStyles.floatingBackButton, { top: insets.top + 8 }]}
-      activeOpacity={0.6}
-      testID="floating-back-button"
+      style={layoutStyles.backButton}
+      activeOpacity={0.7}
+      testID="global-back-button"
     >
-      <View style={layoutStyles.floatingBackInner}>
-        <ChevronLeft color="#e2d9f3" size={22} strokeWidth={2} />
-      </View>
+      <ChevronLeft color="#ffffff" size={18} strokeWidth={2.5} />
+      <Text style={layoutStyles.backButtonText}>Back</Text>
     </TouchableOpacity>
   );
 }
 
-function SplashScreen() {
+function RootLayoutNav() {
   return (
-    <View style={layoutStyles.splash}>
-      <LinearGradient
-        colors={['#080214', '#0c0520', '#10062a']}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <View style={layoutStyles.splashContent}>
-        <Text style={layoutStyles.splashTitle}>Alchemize</Text>
-        <ActivityIndicator color="#a78bfa" size="large" style={{ marginTop: 8 }} />
-      </View>
-    </View>
+    <Stack
+      screenOptions={{
+        headerBackTitle: "Back",
+        headerTintColor: "#ffffff",
+        headerStyle: { backgroundColor: '#0c0520' },
+        headerShadowVisible: false,
+        headerTitleStyle: { color: '#ffffff' },
+        headerLeft: () => <BackButton />,
+      }}
+    >
+      <Stack.Screen name="auth" options={{ title: "Welcome", headerShown: false }} />
+      <Stack.Screen name="index" options={{ title: "Alchemize", headerShown: false }} />
+      <Stack.Screen name="manifestation-board/index" options={{ title: "Portal Board", headerShown: true }} />
+      <Stack.Screen name="manifestation-board/[id]" options={{ title: "Manifestation Detail", headerStyle: { backgroundColor: '#0c0520' }, headerTintColor: '#ffffff' }} />
+      <Stack.Screen name="manifestation-board/add" options={{ title: "Add Manifestation", headerShown: true, presentation: "modal" }} />
+      <Stack.Screen name="manifestation-board/slideshow" options={{ title: "Slideshow", headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen name="goals/index" options={{ title: "Goals" }} />
+      <Stack.Screen name="goals/[id]" options={{ title: "Goal Detail" }} />
+      <Stack.Screen name="goals/add" options={{ title: "Add Goal", presentation: "modal" }} />
+      <Stack.Screen name="habits/index" options={{ title: "Habits" }} />
+      <Stack.Screen name="habits/add" options={{ title: "Add Habit", presentation: "modal" }} />
+      <Stack.Screen name="financial/index" options={{ title: "Financial Tracker" }} />
+      <Stack.Screen name="calorie/index" options={{ title: "Calorie Tracker" }} />
+      <Stack.Screen name="calorie/add" options={{ title: "Add Meal", presentation: "modal" }} />
+      <Stack.Screen name="todos/index" options={{ title: "To-Do List" }} />
+      <Stack.Screen name="todos/add" options={{ title: "Add Task", presentation: "modal" }} />
+      <Stack.Screen name="gratitude/index" options={{ title: "Gratitude Journal" }} />
+      <Stack.Screen name="gratitude/add" options={{ title: "Add Entry", presentation: "modal" }} />
+      <Stack.Screen name="fitness/index" options={{ title: "Fitness" }} />
+      <Stack.Screen name="fitness/add" options={{ title: "Add Workout", presentation: "modal" }} />
+      <Stack.Screen name="calorie/scan" options={{ title: "Scan Food", presentation: "modal" }} />
+      <Stack.Screen name="calorie/profile" options={{ title: "Profile", presentation: "modal" }} />
+      <Stack.Screen name="calorie/meal-prep" options={{ title: "Meal Prep" }} />
+      <Stack.Screen name="financial/notes" options={{ title: "Financial Notes" }} />
+      <Stack.Screen name="affirmations/index" options={{ title: "Affirmations" }} />
+      <Stack.Screen name="affirmations/[id]" options={{ title: "Edit Affirmation" }} />
+      <Stack.Screen name="affirmations/add" options={{ title: "Add Affirmation", presentation: "modal" }} />
+      <Stack.Screen name="affirmations/play" options={{ title: "Play Mode", headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen name="settings" options={{ title: "Settings" }} />
+      <Stack.Screen name="quick-add" options={{ title: "Quick Add", presentation: "modal" }} />
+      <Stack.Screen name="appointments/index" options={{ title: "Appointments" }} />
+      <Stack.Screen name="appointments/add" options={{ title: "Add Appointment", presentation: "modal" }} />
+      <Stack.Screen name="pwa-install-prompt" options={{ title: "Install App", presentation: "modal" }} />
+    </Stack>
   );
-}
-
-function NavigationGuard() {
-  const { isInitialized, isAuthenticated } = useAuth();
-  const [ready, setReady] = useState(false);
-  const segments = useSegments();
-  const router = useRouter();
-  const mountedRef = useRef(true);
-  const isNavigating = useRef(false);
-
-  useEffect(() => {
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  // Run navigation check every time auth or segments change.
-  // Always read AsyncStorage fresh to avoid stale-state issues.
-  useEffect(() => {
-    let cancelled = false;
-
-    const runGuard = async () => {
-      // Wait up to 6s for auth to initialize, then proceed anyway
-      let waited = 0;
-      while (!isInitialized && waited < 6000) {
-        await new Promise(r => setTimeout(r, 100));
-        waited += 100;
-      }
-
-      if (cancelled || !mountedRef.current) return;
-
-      // Always read fresh from storage
-      let termsAccepted = false;
-      try {
-        const stored = await AsyncStorage.getItem(TERMS_ACCEPTED_KEY);
-        termsAccepted = stored === TERMS_VERSION;
-      } catch {
-        termsAccepted = false;
-      }
-
-      if (cancelled || !mountedRef.current) return;
-
-      if (!ready) setReady(true);
-
-      const root = segments[0] as string | undefined;
-      const onTerms = root === 'terms';
-      const onAuth = root === 'auth';
-
-      console.log('[NavigationGuard] Check:', {
-        isInitialized,
-        isAuthenticated,
-        termsAccepted,
-        currentRoute: root,
-      });
-
-      if (isNavigating.current) return;
-
-      if (!termsAccepted && !onTerms) {
-        isNavigating.current = true;
-        router.replace('/terms');
-        setTimeout(() => { isNavigating.current = false; }, 500);
-        return;
-      }
-
-      if (termsAccepted && !isAuthenticated && !onAuth && !onTerms) {
-        isNavigating.current = true;
-        router.replace('/auth');
-        setTimeout(() => { isNavigating.current = false; }, 500);
-        return;
-      }
-
-      if (termsAccepted && isAuthenticated && (onAuth || onTerms)) {
-        isNavigating.current = true;
-        router.replace('/');
-        setTimeout(() => { isNavigating.current = false; }, 500);
-        return;
-      }
-    };
-
-    void runGuard();
-    return () => { cancelled = true; };
-  }, [isInitialized, isAuthenticated, segments]);
-
-  if (!ready) return <SplashScreen />;
-  return null;
-}
-
-function DatabaseErrorScreen({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View style={layoutStyles.splash}>
-      <LinearGradient
-        colors={['#080214', '#0c0520', '#10062a']}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <View style={layoutStyles.splashContent}>
-        <Text style={[layoutStyles.splashTitle, { fontSize: 24 }]}>Database Error</Text>
-        <Text style={{ color: '#a78bfa', fontSize: 14, textAlign: 'center', marginTop: 12, maxWidth: 280 }}>
-          Unable to initialize the local database. This may be due to a corrupted database file.
-        </Text>
-        <TouchableOpacity onPress={onRetry} style={layoutStyles.retryButton} activeOpacity={0.7}>
-          <Text style={layoutStyles.retryText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-function AppInitializer({ children }: { children: React.ReactNode }) {
-  const [dbReady, setDbReady] = useState<boolean | null>(null);
-  const [dbError, setDbError] = useState<string | null>(null);
-
-  const runInit = async () => {
-    setDbReady(null);
-    setDbError(null);
-    try {
-      console.log('[App] Initializing database...');
-      await initDatabase();
-      console.log('[App] Database ready');
-      setDbReady(true);
-    } catch (error: any) {
-      console.error('[App] Database init failed:', error);
-      setDbError(error?.message ?? 'Unknown error');
-      // Do NOT block the app on DB init failure — let users still access UI/auth.
-      // Individual data screens will surface their own error states.
-      setDbReady(true);
-    }
-    try {
-      await registerForPushNotifications();
-    } catch {
-      console.log('[App] Push notification registration skipped or failed');
-    }
-  };
-
-  useEffect(() => {
-    void runInit();
-  }, []);
-
-  if (dbReady === null) {
-    return <SplashScreen />;
-  }
-
-  // dbError is non-fatal; app continues. The retry path is kept for explicit reset from Settings.
-  void dbError;
-  void resetDatabaseFile;
-  void DatabaseErrorScreen;
-
-  return <>{children}</>;
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      console.log('[App] Initializing database...');
+      initDatabase()
+        .then(() => console.log('[App] Database ready'))
+        .catch((err) => console.error('[App] Database init failed:', err));
+
+      console.log('[App] Registering for push notifications...');
+      registerForPushNotifications()
+        .then((token) => {
+          if (token) console.log('[App] Push token registered:', token);
+          else console.log('[App] Push notification registration skipped or failed');
+        })
+        .catch((err) => console.error('[App] Push registration error:', err));
+    }
+  }, []);
+
   return (
-    <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <ThemeProvider>
-                <AppInitializer>
-                  <NetworkBanner />
-                  <NavigationGuard />
-                  <FloatingBackButton />
-                  <OnboardingOverlay />
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      gestureEnabled: true,
-                      contentStyle: { backgroundColor: '#080214' },
-                      animation: 'slide_from_right',
-                    }}
-                  >
-                    <Stack.Screen name="index" />
-                    <Stack.Screen name="auth" options={{ gestureEnabled: false }} />
-                    <Stack.Screen name="terms" options={{ gestureEnabled: false }} />
-                    <Stack.Screen name="settings" />
-                    <Stack.Screen
-                      name="(tabs)"
-                      options={{ headerShown: false }}
-                    />
-                  </Stack>
-                </AppInitializer>
-              </ThemeProvider>
-            </AuthProvider>
-          </QueryClientProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <GestureHandlerRootView style={layoutStyles.root}>
+              <View style={layoutStyles.root}>
+                <RootLayoutNav />
+                <NetworkBanner />
+              </View>
+            </GestureHandlerRootView>
+          </ThemeProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </QueryClientProvider>
   );
 }
 
 const layoutStyles = StyleSheet.create({
-  floatingBackButton: {
-    position: 'absolute',
-    left: 12,
-    zIndex: 50,
-  },
-  floatingBackInner: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(16, 8, 32, 0.55)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.18)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  splash: {
+  root: {
     flex: 1,
-    backgroundColor: '#080214',
-    justifyContent: 'center',
+  },
+  backButton: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingRight: 8,
   },
-  splashContent: {
-    alignItems: 'center',
-    gap: 24,
-  },
-  splashTitle: {
-    fontSize: 32,
-    fontWeight: '800' as const,
-    color: '#fff',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(139,92,246,0.6)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 16,
-  },
-  retryButton: {
-    marginTop: 24,
-    backgroundColor: 'rgba(139, 92, 246, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.5)',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-  },
-  retryText: {
-    color: '#e2d9f3',
-    fontSize: 16,
+  backButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '600' as const,
   },
 });

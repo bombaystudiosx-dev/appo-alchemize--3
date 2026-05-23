@@ -8,7 +8,6 @@ import {
   TextInput,
   Platform,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -194,17 +193,16 @@ export default function NutritionProfileScreen() {
   });
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <View style={styles.container}>
       <LinearGradient
         colors={['#0a0a0f', '#0d0d15', '#0a0a0f']}
         style={StyleSheet.absoluteFill}
       />
-
+      
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.heroSection}>
           <View style={styles.heroIconBg}>
@@ -560,7 +558,7 @@ export default function NutritionProfileScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

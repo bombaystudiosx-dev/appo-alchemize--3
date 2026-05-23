@@ -9,7 +9,6 @@ import {
   Modal,
   Platform,
   Alert,
-  KeyboardAvoidingView,
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -410,7 +409,7 @@ export default function MealPrepScreen() {
         onRequestClose={closeModal}
       >
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
+          <View style={[styles.modalContent, { paddingBottom: insets.bottom + 20 }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {editingMeal ? 'Edit Meal' : 'Add Meal'}
@@ -420,7 +419,7 @@ export default function MealPrepScreen() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.modalMealInfo}>
                 <Text style={styles.modalMealIcon}>
                   {MEAL_SLOTS.find(s => s.type === selectedMealType)?.icon}
@@ -526,7 +525,7 @@ export default function MealPrepScreen() {
                 {createMutation.isPending || updateMutation.isPending ? 'Saving...' : 'Save Meal'}
               </Text>
             </TouchableOpacity>
-          </KeyboardAvoidingView>
+          </View>
         </View>
       </Modal>
     </View>

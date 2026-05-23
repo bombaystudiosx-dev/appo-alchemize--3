@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "Alchemize",
+      "name": "Expo",
       "path": "expo",
       "framework": "react-native"
     }

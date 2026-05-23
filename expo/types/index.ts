@@ -210,7 +210,6 @@ export interface GratitudeEntry {
   gratitude1: string;
   gratitude2: string | null;
   gratitude3: string | null;
-  dailyReflection: string | null;
   createdAt: number;
 }
 
