@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { initDatabase } from "@/lib/database";
 import NetworkBanner from "@/components/NetworkBanner";
+import GestureOnboarding from "@/components/GestureOnboarding";
 import { registerForPushNotifications } from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -39,6 +40,12 @@ function BackButton() {
       <Text style={layoutStyles.backButtonText}>Back</Text>
     </TouchableOpacity>
   );
+}
+
+function GestureOnboardingGate() {
+  const { isAuthenticated, isLoading } = useAuth();
+  if (isLoading || !isAuthenticated) return null;
+  return <GestureOnboarding />;
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -89,6 +96,9 @@ function RootLayoutNav() {
         headerShadowVisible: false,
         headerTitleStyle: { color: '#ffffff' },
         headerLeft: () => <BackButton />,
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        animation: 'slide_from_right',
       }}
     >
       <Stack.Screen name="auth" options={{ title: "Welcome", headerShown: false }} />
@@ -157,6 +167,7 @@ export default function RootLayout() {
                   <RootLayoutNav />
                 </AuthGate>
                 <NetworkBanner />
+                <GestureOnboardingGate />
               </View>
             </GestureHandlerRootView>
           </ThemeProvider>
