@@ -365,28 +365,34 @@ export default function AuthScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              style={styles.agreeRow}
-              onPress={() => {
-                if (termsAccepted) {
-                  setTermsAccepted(false);
-                  AsyncStorage.removeItem(TERMS_ACCEPTED_KEY).catch(() => {});
-                } else {
-                  setShowTermsModal(true);
-                }
-              }}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.check, termsAccepted && styles.checkOn]}>
-                {termsAccepted && <Check color="#fff" size={11} strokeWidth={3} />}
-              </View>
+            <View style={styles.agreeRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (termsAccepted) {
+                    setTermsAccepted(false);
+                    AsyncStorage.removeItem(TERMS_ACCEPTED_KEY).catch(() => {});
+                  } else {
+                    setShowTermsModal(true);
+                  }
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={[styles.check, termsAccepted && styles.checkOn]}>
+                  {termsAccepted && <Check color="#fff" size={11} strokeWidth={3} />}
+                </View>
+              </TouchableOpacity>
               <Text style={styles.agreeText}>
                 {t.agreeLabel}{' '}
-                <Text style={styles.agreeLink} onPress={() => setShowTermsModal(true)}>
+                <Text
+                  style={styles.agreeLink}
+                  onPress={() => setShowTermsModal(true)}
+                  suppressHighlighting={false}
+                >
                   {t.termsLink}
                 </Text>
               </Text>
-            </TouchableOpacity>
+            </View>
 
             {error ? <Text style={styles.errorMsg}>{error}</Text> : null}
 
