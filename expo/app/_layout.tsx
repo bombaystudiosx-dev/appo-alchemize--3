@@ -1,15 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack, useRouter, useRootNavigationState } from "expo-router";
+import { Stack, useRouter, useRootNavigationState, useSegments } from "expo-router";
 import React, { useEffect } from "react";
-import { StyleSheet, Text, TouchableOpacity, Platform, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, Platform, View, Image } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ChevronLeft } from "lucide-react-native";
+import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider } from "@/contexts/theme-context";
-import { AuthProvider } from "@/contexts/auth-context";
+import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { initDatabase } from "@/lib/database";
 import NetworkBanner from "@/components/NetworkBanner";
 import { registerForPushNotifications } from "@/lib/notifications";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +39,44 @@ function BackButton() {
       <Text style={layoutStyles.backButtonText}>Back</Text>
     </TouchableOpacity>
   );
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+  const navState = useRootNavigationState();
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!navState?.key) return;
+    const inAuth = segments[0] === 'auth';
+    if (!isAuthenticated && !inAuth) {
+      router.replace('/auth');
+    } else if (isAuthenticated && inAuth) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, isLoading, segments, navState?.key, router]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isLoading]);
+
+  if (isLoading) {
+    return (
+      <View style={layoutStyles.splash}>
+        <Image
+          source={require('../assets/images/splash-icon.png')}
+          style={layoutStyles.splashImage}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 function RootLayoutNav() {
@@ -112,7 +153,9 @@ export default function RootLayout() {
           <ThemeProvider>
             <GestureHandlerRootView style={layoutStyles.root}>
               <View style={layoutStyles.root}>
-                <RootLayoutNav />
+                <AuthGate>
+                  <RootLayoutNav />
+                </AuthGate>
                 <NetworkBanner />
               </View>
             </GestureHandlerRootView>
@@ -138,5 +181,15 @@ const layoutStyles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '600' as const,
+  },
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0c0520',
+  },
+  splashImage: {
+    width: 200,
+    height: 200,
   },
 });

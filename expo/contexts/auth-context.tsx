@@ -35,9 +35,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     token: null,
   });
   const [rememberMe, setRememberMeState] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    void loadAuthState();
+    void loadAuthState().finally(() => setIsLoading(false));
   }, []);
 
   const loadAuthState = async () => {
@@ -334,7 +335,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     user: authState.user,
     token: authState.token,
     isAuthenticated: !!authState.user,
-    isLoading: false,
+    isLoading,
     rememberMe,
     login,
     signup,
@@ -342,5 +343,5 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     loginWithGoogle,
     resetPassword,
     logout,
-  }), [authState.user, authState.token, rememberMe, login, signup, loginWithApple, loginWithGoogle, resetPassword, logout]);
+  }), [authState.user, authState.token, isLoading, rememberMe, login, signup, loginWithApple, loginWithGoogle, resetPassword, logout]);
 });
