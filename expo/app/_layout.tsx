@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
 import { initDatabase } from "@/lib/database";
 import NetworkBanner from "@/components/NetworkBanner";
+import TermsGate from "@/components/TermsGate";
 import { registerForPushNotifications } from "@/lib/notifications";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -153,9 +154,11 @@ export default function RootLayout() {
           <ThemeProvider>
             <GestureHandlerRootView style={layoutStyles.root}>
               <View style={layoutStyles.root}>
-                <AuthGate>
-                  <RootLayoutNav />
-                </AuthGate>
+                <TermsGate>
+                  <AuthGate>
+                    <RootLayoutNav />
+                  </AuthGate>
+                </TermsGate>
                 <NetworkBanner />
               </View>
             </GestureHandlerRootView>
