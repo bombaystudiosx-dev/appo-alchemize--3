@@ -1172,7 +1172,7 @@ export const habitsDb = {
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
       'INSERT INTO habits (id, userId, name, icon, goal, goalUnit, type, frequencyType, customDays, currentProgress, streak, xpReward, energyReward, color, lastCompletedDate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.streak, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.createdAt]
+      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, 0, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.createdAt]
     );
   },
   
@@ -1181,7 +1181,7 @@ export const habitsDb = {
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
       'UPDATE habits SET name = ?, icon = ?, goal = ?, goalUnit = ?, type = ?, frequencyType = ?, customDays = ?, currentProgress = ?, streak = ?, xpReward = ?, energyReward = ?, color = ?, lastCompletedDate = ? WHERE id = ? AND userId = ?',
-      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.streak, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.id, userId]
+      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, 0, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.id, userId]
     );
   },
   

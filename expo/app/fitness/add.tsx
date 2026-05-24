@@ -1,19 +1,40 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, Zap } from 'lucide-react-native';
+import { Sparkles, Zap, X, ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
-import { workoutsDb } from '@/lib/database';
-import type { Workout } from '@/types';
+import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb } from '@/lib/database';
+import { estimateCalories } from '@/lib/fitness';
+import type { WorkoutSession, WorkoutTemplate } from '@/types';
 
 const CalorieEstimateSchema = z.object({
   estimatedCalories: z.number().describe('Estimated calories burned during the workout'),
   confidence: z.enum(['low', 'medium', 'high']).describe('Confidence level of the estimate'),
   explanation: z.string().describe('Brief explanation of the estimate'),
 });
+
+const WORKOUT_TYPE_MAP: Record<string, WorkoutTemplate['category']> = {
+  cardio: 'hiit',
+  strength: 'strength',
+  yoga: 'yoga',
+  hiit: 'hiit',
+  stretching: 'stretch',
+  sports: 'run',
+  other: 'stretch',
+};
+
+const WORKOUT_TYPE_INTENSITY: Record<string, WorkoutTemplate['intensity']> = {
+  cardio: 'medium',
+  strength: 'high',
+  yoga: 'low',
+  hiit: 'high',
+  stretching: 'low',
+  sports: 'medium',
+  other: 'low',
+};
 
 export default function AddWorkoutScreen() {
   const router = useRouter();
@@ -28,11 +49,82 @@ export default function AddWorkoutScreen() {
   const [aiConfidence, setAiConfidence] = useState<'low' | 'medium' | 'high' | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: (workout: Workout) => workoutsDb.create(workout),
+    mutationFn: async () => {
+      if (Platform.OS === 'web') return;
+
+      const durationNum = parseInt(duration, 10);
+      if (isNaN(durationNum) || durationNum <= 0) {
+        throw new Error('Invalid duration');
+      }
+
+      const category = WORKOUT_TYPE_MAP[type];
+      const intensity = WORKOUT_TYPE_INTENSITY[type];
+      const calories = aiCalories ?? estimateCalories(durationNum, intensity);
+
+      const templateId = `manual-${Date.now()}`;
+      const template: WorkoutTemplate = {
+        id: templateId,
+        title: workoutDescription.trim() || `${type.charAt(0).toUpperCase() + type.slice(1)} Workout`,
+        category,
+        durationMinutes: durationNum,
+        intensity,
+        equipment: 'none',
+        description: notes.trim() || `Manual ${type} workout`,
+      };
+
+      await workoutTemplatesDb.create(template);
+
+      const now = Date.now();
+      const session: WorkoutSession = {
+        id: `session-${Date.now()}`,
+        templateId,
+        startedAt: now - durationNum * 60 * 1000,
+        endedAt: now,
+        durationMinutes: durationNum,
+        completed: true,
+        caloriesEstimate: calories,
+        source: 'manual',
+      };
+
+      await workoutSessionsDb.create(session);
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      const existingMetric = await normalizedMetricsDb.getByDate(dateStr);
+      if (existingMetric) {
+        await normalizedMetricsDb.upsert({
+          id: existingMetric.id,
+          date: dateStr,
+          activeMinutes: durationNum,
+          caloriesActive: calories,
+          steps: 0,
+          source: 'workout',
+          deviceType: 'none',
+        });
+      } else {
+        await normalizedMetricsDb.create({
+          id: `metric-${Date.now()}`,
+          date: dateStr,
+          activeMinutes: durationNum,
+          caloriesActive: calories,
+          steps: 0,
+          source: 'workout',
+          deviceType: 'none',
+        });
+      }
+
+      return session;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workouts'] });
+      queryClient.invalidateQueries({ queryKey: ['workoutSessions'] });
+      queryClient.invalidateQueries({ queryKey: ['workoutTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['todayMetric'] });
+      queryClient.invalidateQueries({ queryKey: ['fitnessAwards'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
+    },
+    onError: (error) => {
+      console.error('Workout save error:', error);
+      Alert.alert('Error', 'Failed to save workout. Please try again.');
     },
   });
 
@@ -72,27 +164,24 @@ Provide an estimated calorie burn based on this information. Consider typical me
   });
 
   const handleSave = () => {
-    
-    if (!duration.trim() || isNaN(parseInt(duration))) {
-      Alert.alert('Error', 'Please enter valid duration');
+    if (!duration.trim() || isNaN(parseInt(duration)) || parseInt(duration) <= 0) {
+      Alert.alert('Error', 'Please enter a valid duration in minutes');
       return;
     }
 
-    const workout: Workout = {
-      id: Date.now().toString(),
-      type,
-      durationMinutes: parseInt(duration),
-      caloriesBurned: aiCalories,
-      notes: workoutDescription.trim() || notes.trim(),
-      date: Date.now(),
-      createdAt: Date.now(),
-    };
-
-    createMutation.mutate(workout);
+    createMutation.mutate();
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <ChevronLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Log Workout</Text>
+        <View style={styles.backBtn} />
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         <Text style={styles.label}>Workout Type</Text>
         <View style={styles.typeContainer}>
@@ -215,11 +304,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0a0a',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 60,
+    paddingBottom: 16,
+  },
+  backBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
   scrollView: {
     flex: 1,
   },
   content: {
     padding: 20,
+    paddingTop: 0,
+    paddingBottom: 40,
   },
   label: {
     fontSize: 16,

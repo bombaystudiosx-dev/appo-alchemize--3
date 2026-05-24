@@ -88,7 +88,6 @@ export default function AddHabitScreen() {
       frequencyType,
       customDays: [],
       currentProgress: 0,
-      streak: 0,
       xpReward: xpNum,
       energyReward: energyNum,
       color: '#6366f1',

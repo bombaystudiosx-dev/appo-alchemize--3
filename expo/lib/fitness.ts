@@ -49,10 +49,6 @@ export async function seedWorkoutTemplates() {
 export async function seedAwards() {
   const awards: Omit<Award, 'id'>[] = [
     { code: 'FIRST_WORKOUT', title: 'First Steps', description: 'Complete your first workout', earnedAt: null },
-    { code: 'STREAK_3', title: '3 Day Streak', description: 'Work out 3 days in a row', earnedAt: null },
-    { code: 'STREAK_7', title: 'Week Warrior', description: 'Work out 7 days in a row', earnedAt: null },
-    { code: 'STREAK_14', title: 'Two Week Champion', description: 'Work out 14 days in a row', earnedAt: null },
-    { code: 'STREAK_30', title: 'Month Master', description: 'Work out 30 days in a row', earnedAt: null },
     { code: 'WORKOUTS_10', title: 'Getting Started', description: 'Complete 10 workouts', earnedAt: null },
     { code: 'WORKOUTS_25', title: 'Building Momentum', description: 'Complete 25 workouts', earnedAt: null },
     { code: 'WORKOUTS_50', title: 'Half Century', description: 'Complete 50 workouts', earnedAt: null },
@@ -66,35 +62,6 @@ export async function seedAwards() {
       ...award,
     });
   }
-}
-
-export function calculateStreak(sessions: WorkoutSession[]): number {
-  if (sessions.length === 0) return 0;
-  
-  const completedSessions = sessions.filter(s => s.completed).sort((a, b) => b.startedAt - a.startedAt);
-  if (completedSessions.length === 0) return 0;
-  
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayMs = today.getTime();
-  
-  let streak = 0;
-  let checkDate = todayMs;
-  
-  const sessionDates = new Set(
-    completedSessions.map(s => {
-      const date = new Date(s.startedAt);
-      date.setHours(0, 0, 0, 0);
-      return date.getTime();
-    })
-  );
-  
-  while (sessionDates.has(checkDate)) {
-    streak++;
-    checkDate -= 24 * 60 * 60 * 1000;
-  }
-  
-  return streak;
 }
 
 export function getTodayProgress(sessions: WorkoutSession[], metrics: NormalizedMetric | null): {
@@ -185,28 +152,6 @@ export async function checkAndAwardAchievements(sessions: WorkoutSession[]): Pro
   if (uniqueCategories.size >= 5) {
     await awardsDb.markEarned('VARIETY_5');
     newAwards.push('VARIETY_5');
-  }
-  
-  const streak = calculateStreak(completedSessions);
-  
-  if (streak >= 3) {
-    await awardsDb.markEarned('STREAK_3');
-    newAwards.push('STREAK_3');
-  }
-  
-  if (streak >= 7) {
-    await awardsDb.markEarned('STREAK_7');
-    newAwards.push('STREAK_7');
-  }
-  
-  if (streak >= 14) {
-    await awardsDb.markEarned('STREAK_14');
-    newAwards.push('STREAK_14');
-  }
-  
-  if (streak >= 30) {
-    await awardsDb.markEarned('STREAK_30');
-    newAwards.push('STREAK_30');
   }
   
   return newAwards;

@@ -61,7 +61,7 @@ export interface Habit {
   frequencyType: 'daily' | 'weekly' | 'custom';
   customDays: number[];
   currentProgress: number;
-  streak: number;
+  streak?: number;
   xpReward: number;
   energyReward: number;
   color: string;

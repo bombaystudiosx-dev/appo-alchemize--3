@@ -82,10 +82,8 @@ export default function HabitsScreen() {
 
       const habit = habits.find(h => h.id === habitId);
       if (habit) {
-        const updatedStreak = getHabitStreak(habitId) + 1;
         await habitsDb.update({
           ...habit,
-          streak: updatedStreak,
           lastCompletedDate: new Date().toISOString(),
         });
       }
@@ -137,41 +135,12 @@ export default function HabitsScreen() {
     [allCompletions]
   );
 
-  const getHabitStreak = useCallback(
-    (habitId: string): number => {
-      const completions = allCompletions
-        .filter((c) => c.habitId === habitId)
-        .sort((a, b) => b.completedAt - a.completedAt);
-
-      if (completions.length === 0) return 0;
-
-      let streak = 0;
-      const today = new Date().setHours(0, 0, 0, 0);
-      let checkDate = today;
-
-      for (const completion of completions) {
-        const compDate = new Date(completion.completedAt).setHours(0, 0, 0, 0);
-        if (compDate === checkDate) {
-          streak++;
-          checkDate -= 86400000;
-        } else if (compDate < checkDate) {
-          break;
-        }
-      }
-
-      return streak;
-    },
-    [allCompletions]
-  );
-
   const totalStats = useMemo(() => {
-    const maxStreak = Math.max(...habits.map(h => getHabitStreak(h.id)), 0);
     return {
-      maxStreak,
       totalXP: userProfile?.totalXp || 0,
       totalEnergy: userProfile?.totalEnergy || 0,
     };
-  }, [habits, userProfile, getHabitStreak]);
+  }, [userProfile]);
 
   const getDayCompletionCount = (date: Date): number => {
     const dateStart = new Date(date).setHours(0, 0, 0, 0);
@@ -298,7 +267,6 @@ export default function HabitsScreen() {
 
   const renderHabitCard = (habit: Habit) => {
     const isCompleted = isCompletedOnDate(habit.id, selectedDate);
-    const streak = getHabitStreak(habit.id);
     const timerState = timerStates[habit.id];
     const counterValue = counterValues[habit.id] || 0;
 
@@ -315,7 +283,6 @@ export default function HabitsScreen() {
                 {habit.type === 'timer' && `⏱ ${habit.goal} ${habit.goalUnit}`}
                 {habit.type === 'counter' && `🔢 ${habit.goal} times`}
                 {habit.type === 'checkbox' && 'Daily task'}
-                {' • 🔥 '}{streak}
               </Text>
             </View>
           </View>
@@ -500,14 +467,6 @@ export default function HabitsScreen() {
         </View>
 
         <BlurView intensity={15} tint="dark" style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🔥</Text>
-            <View>
-              <Text style={styles.statValue}>{totalStats.maxStreak}</Text>
-              <Text style={styles.statLabel}>Max Streak</Text>
-            </View>
-          </View>
-          <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={styles.statIcon}>🏆</Text>
             <View>

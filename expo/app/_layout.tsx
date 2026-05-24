@@ -121,6 +121,8 @@ function RootLayoutNav() {
       <Stack.Screen name="gratitude/add" options={{ title: "Add Entry", presentation: "modal" }} />
       <Stack.Screen name="fitness/index" options={{ title: "Fitness" }} />
       <Stack.Screen name="fitness/add" options={{ title: "Add Workout", presentation: "modal" }} />
+      <Stack.Screen name="fitness/workout" options={{ title: "Workout", presentation: "modal" }} />
+      <Stack.Screen name="fitness/browse" options={{ title: "Browse Workouts" }} />
       <Stack.Screen name="calorie/scan" options={{ title: "Scan Food", presentation: "modal" }} />
       <Stack.Screen name="calorie/profile" options={{ title: "Profile", presentation: "modal" }} />
       <Stack.Screen name="calorie/meal-prep" options={{ title: "Meal Prep" }} />
