@@ -24,8 +24,12 @@ export default function AddGoalScreen() {
   const createMutation = useMutation({
     mutationFn: (goal: Goal) => goalsDb.create(goal),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void queryClient.invalidateQueries({ queryKey: ['goals'] });
       router.back();
+    },
+    onError: (error) => {
+      console.error('[Goals] Create error:', error);
+      Alert.alert('Error', 'Failed to save goal. Please try again.');
     },
   });
 
@@ -35,12 +39,20 @@ export default function AddGoalScreen() {
       return;
     }
 
+    let targetDate: number | null = null;
+    if (dueDate.trim()) {
+      const parsed = new Date(dueDate.trim()).getTime();
+      if (!Number.isNaN(parsed)) {
+        targetDate = parsed;
+      }
+    }
+
     const goal: Goal = {
       id: Date.now().toString(),
       title: title.trim(),
       description: description.trim(),
-      targetDate: dueDate ? new Date(dueDate).getTime() : null,
-      status: 'not_started',
+      targetDate,
+      status: 'in_progress',
       progress: 0,
       streak: 0,
       bestStreak: 0,
