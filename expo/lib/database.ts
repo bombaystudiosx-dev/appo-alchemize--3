@@ -1375,9 +1375,10 @@ export const foodLogsDb = {
   
   async create(log: FoodLog): Promise<void> {
     const database = await ensureDatabase();
+    const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
       'INSERT INTO food_logs (id, userId, foodName, servingDescription, calories, proteinGrams, carbGrams, fatGrams, sugarGrams, fiberGrams, mealType, sourceType, loggedAt, isLocked, calendarEventId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [log.id, currentUserId || '', log.foodName, log.servingDescription, log.calories, log.proteinGrams, log.carbGrams, log.fatGrams, log.sugarGrams, log.fiberGrams, log.mealType, log.sourceType, log.loggedAt, log.isLocked ? 1 : 0, log.calendarEventId]
+      [log.id, userId, log.foodName, log.servingDescription, log.calories, log.proteinGrams, log.carbGrams, log.fatGrams, log.sugarGrams, log.fiberGrams, log.mealType, log.sourceType, log.loggedAt, log.isLocked ? 1 : 0, log.calendarEventId]
     );
   },
   
@@ -1655,7 +1656,7 @@ export const userNutritionProfileDb = {
     await database.runAsync(
       `INSERT OR REPLACE INTO user_nutrition_profiles (id, userId, height, heightUnit, weight, weightUnit, targetWeight, age, gender, activityLevel, goal, weeklyGoal, dailyCalorieTarget, dailyProteinTarget, dailyCarbsTarget, dailyFatTarget, dailyWaterTarget, dailyFiberTarget, manualMacros, updatedAt) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [profile.id, currentUserId || '', profile.height, profile.heightUnit, profile.weight, profile.weightUnit, profile.targetWeight, profile.age, profile.gender, profile.activityLevel, profile.goal, profile.weeklyGoal, profile.dailyCalorieTarget, profile.dailyProteinTarget, profile.dailyCarbsTarget, profile.dailyFatTarget, profile.dailyWaterTarget, profile.dailyFiberTarget ?? 25, profile.manualMacros ? 1 : 0, profile.updatedAt]
+      [profile.id, getCurrentUserId() ?? 'guest', profile.height, profile.heightUnit, profile.weight, profile.weightUnit, profile.targetWeight, profile.age, profile.gender, profile.activityLevel, profile.goal, profile.weeklyGoal, profile.dailyCalorieTarget, profile.dailyProteinTarget, profile.dailyCarbsTarget, profile.dailyFatTarget, profile.dailyWaterTarget, profile.dailyFiberTarget ?? 25, profile.manualMacros ? 1 : 0, profile.updatedAt]
     );
   },
 };

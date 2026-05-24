@@ -56,6 +56,10 @@ export default function AddHabitScreen() {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       router.back();
     },
+    onError: (error: any) => {
+      console.error('[AddHabit] Save failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save habit. Please try again.');
+    },
   });
 
   const loadTemplate = (template: typeof TEMPLATES[number]) => {

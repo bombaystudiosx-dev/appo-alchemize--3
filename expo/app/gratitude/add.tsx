@@ -29,7 +29,12 @@ export default function AddGratitudeEntryScreen() {
     mutationFn: (entry: GratitudeEntry) => gratitudeDb.create(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['gratitude-entry', selectedDate] });
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[AddGratitude] Create failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save gratitude. Please try again.');
     },
   });
 
@@ -37,7 +42,12 @@ export default function AddGratitudeEntryScreen() {
     mutationFn: (entry: GratitudeEntry) => gratitudeDb.update(entry),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gratitude-entries'] });
+      queryClient.invalidateQueries({ queryKey: ['gratitude-entry', selectedDate] });
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[AddGratitude] Update failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not update gratitude. Please try again.');
     },
   });
 

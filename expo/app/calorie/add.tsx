@@ -101,6 +101,10 @@ export default function AddMealScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
     },
+    onError: (error: any) => {
+      console.error('[AddFood] Save failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save food. Please try again.');
+    },
   });
 
   const { mutate: createFood } = createMutation;

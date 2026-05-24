@@ -19,6 +19,10 @@ export default function AddTaskScreen() {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       router.back();
     },
+    onError: (error: any) => {
+      console.error('[AddTask] Save failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save task. Please try again.');
+    },
   });
 
   const handleSave = () => {
