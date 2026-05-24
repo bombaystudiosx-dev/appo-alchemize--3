@@ -8,6 +8,8 @@ import {
   ScrollView,
   Alert,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -116,7 +118,8 @@ export default function AddHabitScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <KeyboardAvoidingView style={styles.scrollView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {name === '' && (
             <View style={styles.templatesSection}>
               <Text style={styles.templatesTitle}>Quick Start Templates</Text>
@@ -290,6 +293,7 @@ export default function AddHabitScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </ImageBackground>
   );

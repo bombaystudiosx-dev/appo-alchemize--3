@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sparkles, Zap, X, ChevronLeft } from 'lucide-react-native';
@@ -182,7 +182,8 @@ Provide an estimated calorie burn based on this information. Consider typical me
         <View style={styles.backBtn} />
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView style={styles.scrollView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>Workout Type</Text>
         <View style={styles.typeContainer}>
           {(['cardio', 'strength', 'yoga', 'hiit', 'stretching', 'sports', 'other'] as const).map((t) => (
@@ -295,6 +296,7 @@ Provide an estimated calorie burn based on this information. Consider typical me
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
