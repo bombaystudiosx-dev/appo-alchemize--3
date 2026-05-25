@@ -51,7 +51,7 @@ _Updated 2026-05-25 from system-repo-audit run._
 ## Known Constraints
 
 ### Critical / Active Issues (from 2026-05-25 audit)
-1. **Plaintext passwords in AsyncStorage** — `expo/contexts/auth-context.tsx` stores and compares passwords as plain strings. Must be hashed before any production use.
+1. ~~**Plaintext passwords in AsyncStorage**~~ — **FIXED PR-001 (2026-05-25).** Passwords now stored as SHA-256 hashes with userId as domain separator. Legacy entries migrated on first load.
 2. **EXPO_PUBLIC_GOOGLE_CLIENT_SECRET bundled** — `expo/lib/oauth-config.ts` uses `EXPO_PUBLIC_` prefix, embedding the secret in the JS bundle. Must be moved server-side.
 3. **14+ tables missing userId isolation** — meals, workouts, body_metrics, water_logs, saved_foods, planned_meals, fitness_goals, workout_templates, workout_sessions, normalized_metrics, fitness_plans, awards, habit_completions, nutrition_goals all lack `WHERE userId = ?` filters.
 4. **Dual auth token mismatch** — Frontend generates fake tokens (`token_${userId}_${Date.now()}`); backend expects real JWTs. tRPC `protectedProcedure` endpoints are effectively unreachable.
