@@ -1,8 +1,9 @@
+import { invalidateTasks } from '../../services/queryInvalidationService';
 import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tasksDb } from '@/lib/database';
+import { tasksDb } from '@/lib/db/tasks';
 import type { Task } from '@/types';
 
 export default function AddTaskScreen() {
@@ -16,7 +17,7 @@ export default function AddTaskScreen() {
   const createMutation = useMutation({
     mutationFn: (task: Task) => tasksDb.create(task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTasks(queryClient);
       router.back();
     },
     onError: (error: any) => {

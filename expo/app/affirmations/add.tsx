@@ -1,8 +1,9 @@
+import { invalidateAffirmations } from '../../services/queryInvalidationService';
 import React, { useState } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { affirmationsDb } from '@/lib/database';
+import { affirmationsDb } from '@/lib/db/affirmations';
 import type { Affirmation } from '@/types';
 
 export default function AddAffirmationScreen() {
@@ -16,7 +17,7 @@ export default function AddAffirmationScreen() {
     mutationFn: (affirmation: Affirmation) => affirmationsDb.create(affirmation),
     onSuccess: () => {
       console.log('[AddAffirmation] Created successfully');
-      void queryClient.invalidateQueries({ queryKey: ['affirmations'] });
+      void invalidateAffirmations(queryClient);
       router.back();
     },
     onError: (error: any) => {

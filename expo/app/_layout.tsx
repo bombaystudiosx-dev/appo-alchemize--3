@@ -8,7 +8,7 @@ import { ChevronLeft } from "lucide-react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider } from "@/contexts/theme-context";
 import { AuthProvider, useAuth } from "@/contexts/auth-context";
-import { initDatabase } from "@/lib/database";
+import { initDatabase } from '@/lib/db/core';
 import NetworkBanner from "@/components/NetworkBanner";
 import GestureOnboarding from "@/components/GestureOnboarding";
 import { registerForPushNotifications } from "@/lib/notifications";

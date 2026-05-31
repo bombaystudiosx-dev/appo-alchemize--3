@@ -1,0 +1,1 @@
+export { appointmentsDb } from '../database';

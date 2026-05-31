@@ -16,7 +16,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Sparkles, Play } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { manifestationsDb } from '@/lib/database';
+import { manifestationsDb } from '@/lib/db/manifestations';
 import type { Manifestation } from '@/types';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');

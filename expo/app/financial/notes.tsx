@@ -3,7 +3,7 @@ import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert 
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Lock, CreditCard, PiggyBank } from 'lucide-react-native';
-import { financialNoteDb } from '@/lib/database';
+import { financialNoteDb } from '@/lib/db/finance';
 import type { FinancialNote } from '@/types';
 
 export default function FinancialNotesScreen() {

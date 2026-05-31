@@ -49,7 +49,7 @@ import {
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { resetDatabase } from '@/lib/database';
+import { resetDatabase } from '@/lib/db/core';
 import { registerForPushNotifications, getNotificationStatus } from '@/lib/notifications';
 import { requestCalendarPermission, getCalendarPermissionStatus } from '@/lib/calendar';
 import {

@@ -15,7 +15,7 @@ import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert } from 'react-native';
 import { Calendar, Clock, User, Briefcase, FileText, Check } from 'lucide-react-native';
-import { appointmentsDb } from '@/lib/database';
+import { appointmentsDb } from '@/lib/db/appointments';
 import type { Appointment, AppointmentCategory } from '@/types';
 import { startOfLocalDay } from '@/lib/date-utils';
 import DateTimePicker from '@react-native-community/datetimepicker';

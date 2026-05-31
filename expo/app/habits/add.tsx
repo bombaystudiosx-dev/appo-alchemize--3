@@ -16,7 +16,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { X, Timer, CheckSquare, Hash } from 'lucide-react-native';
-import { habitsDb } from '@/lib/database';
+import { habitsDb } from '@/lib/db';
 import type { Habit, HabitType } from '@/types';
 import { ASSETS } from '@/constants/assets';
 

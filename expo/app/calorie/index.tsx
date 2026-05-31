@@ -27,7 +27,7 @@ import {
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop } from 'react-native-svg';
-import { foodLogsDb, userNutritionProfileDb, waterLogsDb } from '@/lib/database';
+import { foodLogsDb, userNutritionProfileDb, waterLogsDb } from '@/lib/db/food';
 import type { FoodLog, WaterLog } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

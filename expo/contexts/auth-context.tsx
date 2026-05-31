@@ -5,7 +5,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
-import { setCurrentUserId } from '@/lib/database';
+import { setCurrentUserId } from '@/lib/db/core';
 
 const AUTH_STORAGE_KEY = '@alchemize_auth';
 const REMEMBER_ME_KEY = '@alchemize_remember_me';

@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Play, Pause, Square, ChevronLeft, Flame, Clock, RotateCcw } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb } from '@/lib/database';
+import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb } from '@/lib/db/fitness';
 import { estimateCalories } from '@/lib/fitness';
 import type { WorkoutSession } from '@/types';
 

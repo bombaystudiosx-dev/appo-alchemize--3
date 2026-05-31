@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react-native';
-import { affirmationsDb } from '@/lib/database';
+import { affirmationsDb } from '@/lib/db/affirmations';
 
 const DEFAULT_TIMER = 5;
 

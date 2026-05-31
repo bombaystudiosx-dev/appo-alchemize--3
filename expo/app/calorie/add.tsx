@@ -1,3 +1,4 @@
+import { invalidateFoodLogs } from '../../services/queryInvalidationService';
 import React, { useState, useCallback } from 'react';
 import { 
   View, 
@@ -21,7 +22,8 @@ import {
   Zap,
   Search,
 } from 'lucide-react-native';
-import { foodLogsDb, appointmentsDb } from '@/lib/database';
+import { foodLogsDb } from '@/lib/db/food';
+import { appointmentsDb } from '@/lib/db/appointments';
 import type { FoodLog, MealType, Appointment } from '@/types';
 
 const MEAL_TYPES: { value: MealType; label: string; icon: string; color: string }[] = [
@@ -97,7 +99,7 @@ export default function AddMealScreen() {
       return foodLogsDb.create(updatedFoodLog);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      invalidateFoodLogs(queryClient);
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();

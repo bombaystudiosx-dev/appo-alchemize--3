@@ -6,7 +6,7 @@ import { Sparkles, Zap, X, ChevronLeft } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
-import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb } from '@/lib/database';
+import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb } from '@/lib/db/fitness';
 import { estimateCalories } from '@/lib/fitness';
 import type { WorkoutSession, WorkoutTemplate } from '@/types';
 

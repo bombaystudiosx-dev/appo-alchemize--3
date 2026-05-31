@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, CheckCircle2, Circle, Target, Trophy, Calendar as CalendarIcon } from 'lucide-react-native';
-import { goalsDb, goalChecklistDb, goalCompletionsDb } from '@/lib/database';
+import { goalsDb, goalChecklistDb, goalCompletionsDb } from '@/lib/db/goals';
 import type { GoalChecklistItem, GoalCompletion } from '@/types';
 
 export default function GoalDetailScreen() {

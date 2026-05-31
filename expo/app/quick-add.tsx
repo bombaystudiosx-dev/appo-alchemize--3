@@ -1,8 +1,9 @@
+import { invalidateGoals, invalidateTasks } from '../services/queryInvalidationService';
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, ScrollView, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tasksDb, goalsDb, mealsDb, transactionsDb, gratitudeDb } from '@/lib/database';
+import { tasksDb, goalsDb, mealsDb, transactionsDb, gratitudeDb } from '@/lib/db';
 import type { Task, Goal, Meal, Transaction, GratitudeEntry } from '@/types';
 
 const QUICK_ADD_OPTIONS = ['Task', 'Goal', 'Meal', 'Transaction', 'Gratitude'] as const;
@@ -16,7 +17,7 @@ export default function QuickAddScreen() {
   const createTaskMutation = useMutation({
     mutationFn: (task: Task) => tasksDb.create(task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTasks(queryClient);
       router.back();
     },
   });
@@ -24,7 +25,7 @@ export default function QuickAddScreen() {
   const createGoalMutation = useMutation({
     mutationFn: (goal: Goal) => goalsDb.create(goal),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      invalidateGoals(queryClient);
       router.back();
     },
   });

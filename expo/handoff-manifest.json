@@ -1,0 +1,44 @@
+{
+  "source_zip": "alchemize-phase8-ci-observability.zip",
+  "expo_root": "appo-alchemize--3-main/expo",
+  "source_files_scanned": 130,
+  "large_files": [
+    {
+      "file": "app/index.tsx",
+      "lines": 1204
+    },
+    {
+      "file": "app/settings.tsx",
+      "lines": 2314
+    },
+    {
+      "file": "app/appointments/index.tsx",
+      "lines": 1040
+    },
+    {
+      "file": "app/calorie/scan.tsx",
+      "lines": 2118
+    },
+    {
+      "file": "app/financial/index.tsx",
+      "lines": 1439
+    },
+    {
+      "file": "lib/database.ts",
+      "lines": 1965
+    }
+  ],
+  "final_added_docs": [
+    "docs/handoff/HANDOFF.md",
+    "docs/handoff/REMAINING_WORK.md",
+    "docs/qa/QA_CHECKLIST.md",
+    "docs/deployment/DEPLOYMENT_READINESS.md",
+    "docs/architecture/ARCHITECTURE_BASELINE.md",
+    "README_HANDOFF.md"
+  ],
+  "final_added_scripts": [
+    "scripts/final-validation.js",
+    "scripts/route-manifest-check.js",
+    "scripts/handoff-readiness-check.js"
+  ]
+}

@@ -24,7 +24,7 @@ import {
   Calendar,
   Flame,
 } from 'lucide-react-native';
-import { mealPrepPlansDb } from '@/lib/database';
+import { mealPrepPlansDb } from '@/lib/db/food';
 import type { MealPrepPlan, MealType } from '@/types';
 
 const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];

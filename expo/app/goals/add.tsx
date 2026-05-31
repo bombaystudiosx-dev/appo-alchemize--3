@@ -1,3 +1,4 @@
+import { invalidateGoals } from '../../services/queryInvalidationService';
 import React, { useState } from 'react';
 import {
   View,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { goalsDb } from '@/lib/database';
+import { goalsDb } from '@/lib/db/goals';
 import type { Goal } from '@/types';
 
 export default function AddGoalScreen() {
@@ -26,7 +27,7 @@ export default function AddGoalScreen() {
   const createMutation = useMutation({
     mutationFn: (goal: Goal) => goalsDb.create(goal),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void invalidateGoals(queryClient);
       router.back();
     },
     onError: (error) => {

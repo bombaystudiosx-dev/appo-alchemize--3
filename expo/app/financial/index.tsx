@@ -29,7 +29,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react-native';
-import { financialIncomeDb, financialExpenseDb, financialNoteDb } from '@/lib/database';
+import { financialIncomeDb, financialExpenseDb, financialNoteDb } from '@/lib/db/finance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FinancialIncome, FinancialExpense, FinancialNote } from '@/types';
 const NOTEPAD_KEY = '@alchemize_financial_notepad';

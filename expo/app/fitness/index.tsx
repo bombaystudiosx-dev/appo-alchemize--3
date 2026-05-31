@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ImageBackground, 
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Play, TrendingUp, Award, ChevronRight, Plus, Watch, Dumbbell } from 'lucide-react-native';
-import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb, fitnessGoalsDb, fitnessPlansDb, awardsDb } from '@/lib/database';
+import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb, fitnessGoalsDb, fitnessPlansDb, awardsDb } from '@/lib/db/fitness';
 import {
   seedWorkoutTemplates,
   seedAwards,

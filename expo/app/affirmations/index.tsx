@@ -1,9 +1,10 @@
+import { invalidateAffirmations } from '../../services/queryInvalidationService';
 import React, { useState, useMemo } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ScrollView, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Heart, Play, Edit } from 'lucide-react-native';
-import { affirmationsDb } from '@/lib/database';
+import { affirmationsDb } from '@/lib/db/affirmations';
 import type { Affirmation, AffirmationCategory } from '@/types';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
@@ -54,7 +55,7 @@ export default function AffirmationsScreen() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => affirmationsDb.delete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['affirmations'] });
+      void invalidateAffirmations(queryClient);
     },
   });
 
@@ -62,7 +63,7 @@ export default function AffirmationsScreen() {
     mutationFn: (affirmation: Affirmation) =>
       affirmationsDb.update({ ...affirmation, isFavorite: !affirmation.isFavorite }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['affirmations'] });
+      void invalidateAffirmations(queryClient);
     },
   });
 

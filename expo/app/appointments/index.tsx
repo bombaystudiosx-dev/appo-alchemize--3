@@ -26,7 +26,7 @@ import {
   RotateCcw,
   X,
 } from 'lucide-react-native';
-import { appointmentsDb } from '@/lib/database';
+import { appointmentsDb } from '@/lib/db/appointments';
 import type { Appointment } from '@/types';
 import { localDateKey } from '@/lib/date-utils';
 

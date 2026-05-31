@@ -1,0 +1,35 @@
+Phase 6 repository health scan
+
+Source files scanned: 98
+Findings detected: 30
+
+- app/_layout.tsx: console.log usage
+- app/index.tsx: oversized route file (1204 lines)
+- app/index.tsx: console.log usage
+- app/pwa-install-prompt.tsx: console.log usage
+- app/settings.tsx: oversized route file (2314 lines)
+- app/settings.tsx: console.log usage
+- app/affirmations/add.tsx: console.log usage
+- app/appointments/add.tsx: console.log usage
+- app/appointments/index.tsx: console.log usage
+- app/calorie/add.tsx: manual sourceType literal
+- app/calorie/scan.tsx: oversized route file (2118 lines)
+- app/calorie/scan.tsx: console.log usage
+- app/financial/index.tsx: oversized route file (1439 lines)
+- app/financial/index.tsx: console.log usage
+- app/gratitude/index.tsx: console.log usage
+- app/manifestation-board/add.tsx: console.log usage
+- backend/lib/surrealdb.ts: console.log usage
+- components/NetworkBanner.tsx: console.log usage
+- components/UnifiedCalendar.tsx: console.log usage
+- constants/image-config.ts: console.log usage
+- contexts/auth-context.tsx: console.log usage
+- contexts/theme-context.tsx: console.log usage
+- lib/calendar.ts: console.log usage
+- lib/database.ts: console.log usage
+- lib/healthkit.ts: console.log usage
+- lib/notifications.ts: console.log usage
+- types/index.ts: manual sourceType literal
+- scripts/validate-handoff.js: console.log usage
+- scripts/repo-health-check.js: TODO/FIXME marker
+- scripts/repo-health-check.js: console.log usage

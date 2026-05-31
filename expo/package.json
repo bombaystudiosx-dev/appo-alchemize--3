@@ -6,7 +6,12 @@
     "start": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --tunnel",
     "start-web": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
     "start-web-dev": "DEBUG=expo* bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "validate:handoff": "node scripts/validate-handoff.js",
+    "validate:routes": "node scripts/route-manifest-check.js",
+    "validate:health": "node scripts/repo-health-check.js",
+    "validate:production": "node scripts/production-preflight.js",
+    "validate:final": "node scripts/final-validation.js"
   },
   "dependencies": {
     "@expo-google-fonts/akronim": "^0.4.0",

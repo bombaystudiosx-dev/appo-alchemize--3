@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Flame, Heart, House, Plu
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { gratitudeDb } from '@/lib/database';
+import { gratitudeDb } from '@/lib/db/gratitude';
 import { startOfLocalDay } from '@/lib/date-utils';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';

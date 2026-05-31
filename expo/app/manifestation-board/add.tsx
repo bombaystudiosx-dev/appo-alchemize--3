@@ -18,7 +18,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Camera, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { manifestationsDb } from '@/lib/database';
+import { manifestationsDb } from '@/lib/db/manifestations';
 import type { Manifestation } from '@/types';
 
 interface SelectedImageState {

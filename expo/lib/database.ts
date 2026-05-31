@@ -546,6 +546,7 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       gratitude1 TEXT NOT NULL,
       gratitude2 TEXT,
       gratitude3 TEXT,
+      reflection TEXT,
       mood TEXT,
       createdAt INTEGER NOT NULL
     );
@@ -865,6 +866,17 @@ async function runMigrations(database: SQLite.SQLiteDatabase) {
       }
     }
     
+const gratitudeHasReflection = await checkColumn('gratitude_entries', 'reflection');
+if (!gratitudeHasReflection) {
+  console.log('[Database] Adding reflection column to gratitude_entries');
+  try {
+    await database.execAsync('ALTER TABLE gratitude_entries ADD COLUMN reflection TEXT');
+    console.log('[Database] Successfully added reflection column to gratitude_entries');
+  } catch (reflectionError) {
+    console.error('[Database] Failed to add gratitude reflection column:', reflectionError);
+  }
+}
+
     const nutritionProfileHasFiberTarget = await checkColumn('user_nutrition_profiles', 'dailyFiberTarget');
     if (!nutritionProfileHasFiberTarget) {
       console.log('[Database] Adding dailyFiberTarget column to user_nutrition_profiles');
@@ -1503,8 +1515,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.createdAt]
+      'INSERT INTO gratitude_entries (id, userId, entryDate, gratitude1, gratitude2, gratitude3, reflection, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [entry.id, userId, entry.entryDate, entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.reflection ?? null, entry.createdAt]
     );
   },
   
@@ -1512,8 +1524,8 @@ export const gratitudeDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ? WHERE id = ? AND userId = ?',
-      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.id, userId]
+      'UPDATE gratitude_entries SET gratitude1 = ?, gratitude2 = ?, gratitude3 = ?, reflection = ? WHERE id = ? AND userId = ?',
+      [entry.gratitude1, entry.gratitude2, entry.gratitude3, entry.reflection ?? null, entry.id, userId]
     );
   },
   

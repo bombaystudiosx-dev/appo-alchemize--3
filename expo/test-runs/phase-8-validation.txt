@@ -1,0 +1,5 @@
+Phase 8 validation:
+- CI workflow generated
+- recovery validation script added
+- validate-handoff updated
+- production validation chain extended

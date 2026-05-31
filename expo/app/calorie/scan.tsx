@@ -1,3 +1,4 @@
+import { invalidateFoodLogs } from '../../services/queryInvalidationService';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -44,7 +45,8 @@ import {
 } from 'lucide-react-native';
 import { generateObject } from '@rork-ai/toolkit-sdk';
 import { z } from 'zod';
-import { foodLogsDb, appointmentsDb } from '@/lib/database';
+import { foodLogsDb, appointmentsDb } from '@/lib/db';
+import { calculateFoodTotals, getAutoMealType, getConfidenceLabel, getHealthScoreColor, parseOptionalNumber } from '@/services/calorieAnalysisService';
 import type { FoodLog, MealType, Appointment } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -86,29 +88,6 @@ const MEAL_TYPES: { value: MealType; label: string; icon: string; timeRange: str
   { value: 'snack', label: 'Snack', icon: '🍎', timeRange: 'Anytime' },
 ];
 
-function getAutoMealType(): MealType {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return 'breakfast';
-  if (hour >= 11 && hour < 15) return 'lunch';
-  if (hour >= 17 && hour < 22) return 'dinner';
-  return 'snack';
-}
-
-function getHealthScoreColor(score: number): string {
-  if (score >= 8) return '#22c55e';
-  if (score >= 6) return '#84cc16';
-  if (score >= 4) return '#eab308';
-  if (score >= 2) return '#f97316';
-  return '#ef4444';
-}
-
-function getConfidenceLabel(confidence: number): string {
-  if (confidence >= 90) return 'Very High';
-  if (confidence >= 75) return 'High';
-  if (confidence >= 55) return 'Moderate';
-  if (confidence >= 35) return 'Low';
-  return 'Very Low';
-}
 
 const ANALYSIS_PROMPT = `You are an expert nutritionist and food scientist with deep knowledge of the USDA FoodData Central database, international cuisines, and portion estimation.
 
@@ -210,13 +189,7 @@ export default function FoodScannerScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const computedTotals = useMemo(() => ({
-    calories: Math.round(editedFoods.reduce((sum, f) => sum + f.calories, 0)),
-    protein: Math.round(editedFoods.reduce((sum, f) => sum + f.protein, 0)),
-    carbs: Math.round(editedFoods.reduce((sum, f) => sum + f.carbs, 0)),
-    fat: Math.round(editedFoods.reduce((sum, f) => sum + f.fat, 0)),
-    fiber: Math.round(editedFoods.reduce((sum, f) => sum + f.fiber, 0)),
-  }), [editedFoods]);
+  const computedTotals = useMemo(() => calculateFoodTotals(editedFoods), [editedFoods]);
 
   const analyzeMutation = useMutation({
     mutationFn: async ({ imageBase64, hint }: { imageBase64: string; hint?: string }) => {
@@ -359,7 +332,7 @@ export default function FoodScannerScreen() {
       return logs;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      invalidateFoodLogs(queryClient);
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -462,13 +435,13 @@ export default function FoodScannerScreen() {
         foodName: barcodeFoodName.trim(),
         servingDescription: '1 serving (barcode scanned)',
         calories,
-        proteinGrams: barcodeProtein ? parseFloat(barcodeProtein) : null,
-        carbGrams: barcodeCarbs ? parseFloat(barcodeCarbs) : null,
-        fatGrams: barcodeFat ? parseFloat(barcodeFat) : null,
+        proteinGrams: parseOptionalNumber(barcodeProtein),
+        carbGrams: parseOptionalNumber(barcodeCarbs),
+        fatGrams: parseOptionalNumber(barcodeFat),
         sugarGrams: null,
-        fiberGrams: barcodeFiber ? parseFloat(barcodeFiber) : null,
+        fiberGrams: parseOptionalNumber(barcodeFiber),
         mealType: barcodeMealType,
-        sourceType: 'manual',
+        sourceType: 'barcode',
         loggedAt: Date.now(),
         isLocked: true,
         calendarEventId: null,
@@ -505,7 +478,7 @@ export default function FoodScannerScreen() {
       return log;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      invalidateFoodLogs(queryClient);
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBarcodeData(null);

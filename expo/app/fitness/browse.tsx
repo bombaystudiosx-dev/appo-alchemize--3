@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Platform } from '
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Play, ChevronLeft, Clock, Flame, Dumbbell } from 'lucide-react-native';
-import { workoutTemplatesDb } from '@/lib/database';
+import { workoutTemplatesDb } from '@/lib/db/fitness';
 import { seedWorkoutTemplates } from '@/lib/fitness';
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {

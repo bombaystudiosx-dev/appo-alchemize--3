@@ -16,7 +16,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import ConfettiCannon from 'react-native-confetti-cannon';
-import { habitsDb, habitCompletionsDb, userProfileDb } from '@/lib/database';
+import { habitsDb, habitCompletionsDb, userProfileDb } from '@/lib/db';
 import type { Habit } from '@/types';
 import { ASSETS } from '@/constants/assets';
 import LoadingState from '@/components/LoadingState';

@@ -1,0 +1,1 @@
+export { manifestationsDb } from '../database';

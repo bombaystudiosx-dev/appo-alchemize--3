@@ -1,5 +1,5 @@
 import type { WorkoutTemplate, WorkoutSession, NormalizedMetric, Award, FitnessPlan } from '@/types';
-import { workoutTemplatesDb, awardsDb } from '@/lib/database';
+import { workoutTemplatesDb, awardsDb } from '@/lib/db/fitness';
 
 export const WORKOUT_TEMPLATES: Omit<WorkoutTemplate, 'id'>[] = [
   { title: 'Morning Stretch', category: 'stretch', durationMinutes: 10, intensity: 'low', equipment: 'none', description: 'Gentle full-body stretching to start your day' },

@@ -1,0 +1,1 @@
+export { gratitudeDb } from '../database';

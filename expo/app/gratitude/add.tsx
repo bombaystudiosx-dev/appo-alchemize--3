@@ -3,7 +3,7 @@ import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert,
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { gratitudeDb } from '@/lib/database';
+import { gratitudeDb } from '@/lib/db/gratitude';
 import { useTheme } from '@/contexts/theme-context';
 import type { GratitudeEntry } from '@/types';
 
@@ -17,6 +17,7 @@ export default function AddGratitudeEntryScreen() {
   const [gratitude1, setGratitude1] = useState('');
   const [gratitude2, setGratitude2] = useState('');
   const [gratitude3, setGratitude3] = useState('');
+  const [reflection, setReflection] = useState('');
 
   const selectedDate = params.date ? Number(params.date) : new Date().setHours(0, 0, 0, 0);
 
@@ -63,6 +64,7 @@ export default function AddGratitudeEntryScreen() {
         gratitude1: gratitude1.trim(),
         gratitude2: gratitude2.trim() || null,
         gratitude3: gratitude3.trim() || null,
+        reflection: reflection.trim() || null,
       });
     } else {
       createMutation.mutate({
@@ -71,6 +73,7 @@ export default function AddGratitudeEntryScreen() {
         gratitude1: gratitude1.trim(),
         gratitude2: gratitude2.trim() || null,
         gratitude3: gratitude3.trim() || null,
+        reflection: reflection.trim() || null,
         createdAt: Date.now(),
       });
     }
@@ -81,6 +84,7 @@ export default function AddGratitudeEntryScreen() {
       setGratitude1(existingEntry.gratitude1);
       setGratitude2(existingEntry.gratitude2 || '');
       setGratitude3(existingEntry.gratitude3 || '');
+      setReflection(existingEntry.reflection || '');
     }
   }, [existingEntry]);
 
@@ -210,6 +214,30 @@ export default function AddGratitudeEntryScreen() {
               value={gratitude3}
               onChangeText={setGratitude3}
               placeholder="I am grateful for..."
+              placeholderTextColor={colors.placeholder}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+            />
+          </View>
+
+          <View style={styles.entryGroup}>
+            <Text style={[styles.entryLabel, { color: colors.accent }]}>Reflection</Text>
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  backgroundColor: colors.input,
+                  borderColor: colors.inputBorder,
+                  color: colors.text,
+                }
+              ]}
+              value={reflection}
+              onChangeText={setReflection}
+              placeholder="What could I have done better today?"
               placeholderTextColor={colors.placeholder}
               multiline
               numberOfLines={4}
