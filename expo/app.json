@@ -41,8 +41,12 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-    "privacyUrl": "https://alchemize.app/privacy",
-    "termsOfServiceUrl": "https://alchemize.app/terms",
+    "extra": {
+      "legalUrls": {
+        "privacy": "https://alchemize.app/privacy",
+        "termsOfService": "https://alchemize.app/terms"
+      }
+    },
     "plugins": [
       [
         "expo-router",

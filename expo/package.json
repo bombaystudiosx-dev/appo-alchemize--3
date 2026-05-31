@@ -3,9 +3,9 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --tunnel",
-    "start-web": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
+    "start": "npx rork start -p ys0io3mgiutfvjqh8r1ud --tunnel",
+    "start-web": "npx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
+    "start-web-dev": "DEBUG=expo* npx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
     "lint": "expo lint",
     "validate:handoff": "node scripts/validate-handoff.js",
     "validate:routes": "node scripts/route-manifest-check.js",
@@ -87,6 +87,9 @@
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "expo-location": "$expo-location"
   },
   "private": true
 }
