@@ -11,7 +11,9 @@
     "validate:routes": "node scripts/route-manifest-check.js",
     "validate:health": "node scripts/repo-health-check.js",
     "validate:production": "node scripts/production-preflight.js",
-    "validate:final": "node scripts/final-validation.js"
+    "validate:final": "node scripts/final-validation.js",
+    "ci:local": "npm run validate:final && npx expo-doctor && npm run lint",
+    "ci:audit": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "@expo-google-fonts/akronim": "^0.4.0",
