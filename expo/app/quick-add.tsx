@@ -87,8 +87,6 @@ export default function QuickAddScreen() {
           targetDate: null,
           status: 'not_started',
           progress: 0,
-          streak: 0,
-          bestStreak: 0,
           lastCompletedDate: null,
           createdAt: Date.now(),
           updatedAt: Date.now(),

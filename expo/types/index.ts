@@ -3,9 +3,6 @@ export interface UserProfile {
   userId?: string;
   fullName: string;
   email: string;
-  totalXp: number;
-  totalEnergy: number;
-  currentStreak: number;
   createdAt: number;
 }
 
@@ -29,8 +26,6 @@ export interface Goal {
   targetDate: number | null;
   status: 'not_started' | 'in_progress' | 'completed';
   progress: number;
-  streak: number;
-  bestStreak: number;
   lastCompletedDate: number | null;
   createdAt: number;
   updatedAt: number;
@@ -61,9 +56,6 @@ export interface Habit {
   frequencyType: 'daily' | 'weekly' | 'custom';
   customDays: number[];
   currentProgress: number;
-  streak?: number;
-  xpReward: number;
-  energyReward: number;
   color: string;
   lastCompletedDate: string;
   createdAt: number;

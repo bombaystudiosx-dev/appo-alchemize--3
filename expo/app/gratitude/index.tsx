@@ -17,7 +17,7 @@ const now = new Date();
 const INITIAL_MONTH = new Date(now.getFullYear(), now.getMonth(), 1);
 const INITIAL_SELECTED_DATE = startOfLocalDay(now).getTime();
 
-type BottomNavKey = 'home' | 'streaks' | 'explore' | 'profile';
+type BottomNavKey = 'home' | 'habits' | 'explore' | 'profile';
 
 interface GlassSurfaceProps {
   children: ReactNode;
@@ -255,11 +255,11 @@ export default function GratitudeJournalScreen() {
         },
       },
       {
-        key: 'streaks',
-        label: 'Streaks',
+        key: 'habits',
+        label: 'Habits',
         icon: <Flame color="rgba(214, 187, 109, 0.6)" size={22} strokeWidth={2.1} />,
         onPress: () => {
-          console.log('[GratitudeJournal] Bottom nav: Streaks');
+          console.log('[GratitudeJournal] Bottom nav: Habits');
           router.push('/habits' as any);
         },
       },

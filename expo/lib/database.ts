@@ -322,9 +322,6 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       userId TEXT NOT NULL,
       fullName TEXT NOT NULL,
       email TEXT NOT NULL,
-      totalXp INTEGER NOT NULL DEFAULT 0,
-      totalEnergy INTEGER NOT NULL DEFAULT 0,
-      currentStreak INTEGER NOT NULL DEFAULT 0,
       createdAt INTEGER NOT NULL
     );
     
@@ -350,8 +347,6 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       targetDate INTEGER,
       status TEXT NOT NULL,
       progress INTEGER NOT NULL DEFAULT 0,
-      streak INTEGER NOT NULL DEFAULT 0,
-      bestStreak INTEGER NOT NULL DEFAULT 0,
       lastCompletedDate INTEGER,
       createdAt INTEGER NOT NULL,
       updatedAt INTEGER NOT NULL
@@ -385,9 +380,6 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       frequencyType TEXT NOT NULL,
       customDays TEXT NOT NULL,
       currentProgress INTEGER NOT NULL DEFAULT 0,
-      streak INTEGER NOT NULL DEFAULT 0,
-      xpReward INTEGER NOT NULL DEFAULT 5,
-      energyReward INTEGER NOT NULL DEFAULT 1,
       color TEXT NOT NULL DEFAULT '#6366f1',
       lastCompletedDate TEXT NOT NULL DEFAULT '',
       createdAt INTEGER NOT NULL
@@ -983,15 +975,12 @@ export const userProfileDb = {
         userId,
         fullName: 'Guest',
         email: '',
-        totalXp: 0,
-        totalEnergy: 0,
-        currentStreak: 0,
         createdAt: Date.now(),
       };
       await database.runAsync(
-        `INSERT OR REPLACE INTO user_profile (id, userId, fullName, email, totalXp, totalEnergy, currentStreak, createdAt) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [defaultProfile.id, defaultProfile.userId, defaultProfile.fullName, defaultProfile.email, defaultProfile.totalXp, defaultProfile.totalEnergy, defaultProfile.currentStreak, defaultProfile.createdAt]
+        `INSERT OR REPLACE INTO user_profile (id, userId, fullName, email, createdAt) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [defaultProfile.id, defaultProfile.userId, defaultProfile.fullName, defaultProfile.email, defaultProfile.createdAt]
       );
       profile = defaultProfile;
     }
@@ -1003,23 +992,12 @@ export const userProfileDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      `INSERT OR REPLACE INTO user_profile (id, userId, fullName, email, totalXp, totalEnergy, currentStreak, createdAt) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [profile.id, userId, profile.fullName, profile.email, profile.totalXp, profile.totalEnergy, profile.currentStreak, profile.createdAt]
+      `INSERT OR REPLACE INTO user_profile (id, userId, fullName, email, createdAt) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [profile.id, userId, profile.fullName, profile.email, profile.createdAt]
     );
   },
   
-  async updateXpAndEnergy(xp: number, energy: number): Promise<void> {
-    const database = await ensureDatabase();
-    const userId = getCurrentUserId() || 'default';
-    
-    await this.get();
-    
-    await database.runAsync(
-      'UPDATE user_profile SET totalXp = totalXp + ?, totalEnergy = totalEnergy + ? WHERE userId = ?',
-      [xp, energy, userId]
-    );
-  },
 };
 
 export const manifestationsDb = {
@@ -1091,8 +1069,8 @@ export const goalsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO goals (id, userId, title, description, targetDate, status, progress, streak, bestStreak, lastCompletedDate, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [goal.id, userId, goal.title, goal.description, goal.targetDate, goal.status, goal.progress, goal.streak, goal.bestStreak, goal.lastCompletedDate, goal.createdAt, goal.updatedAt]
+      'INSERT INTO goals (id, userId, title, description, targetDate, status, progress, lastCompletedDate, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [goal.id, userId, goal.title, goal.description, goal.targetDate, goal.status, goal.progress, goal.lastCompletedDate, goal.createdAt, goal.updatedAt]
     );
   },
   
@@ -1100,8 +1078,8 @@ export const goalsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE goals SET title = ?, description = ?, targetDate = ?, status = ?, progress = ?, streak = ?, bestStreak = ?, lastCompletedDate = ?, updatedAt = ? WHERE id = ? AND userId = ?',
-      [goal.title, goal.description, goal.targetDate, goal.status, goal.progress, goal.streak, goal.bestStreak, goal.lastCompletedDate, goal.updatedAt, goal.id, userId]
+      'UPDATE goals SET title = ?, description = ?, targetDate = ?, status = ?, progress = ?, lastCompletedDate = ?, updatedAt = ? WHERE id = ? AND userId = ?',
+      [goal.title, goal.description, goal.targetDate, goal.status, goal.progress, goal.lastCompletedDate, goal.updatedAt, goal.id, userId]
     );
   },
   
@@ -1183,8 +1161,8 @@ export const habitsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO habits (id, userId, name, icon, goal, goalUnit, type, frequencyType, customDays, currentProgress, streak, xpReward, energyReward, color, lastCompletedDate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, 0, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.createdAt]
+      'INSERT INTO habits (id, userId, name, icon, goal, goalUnit, type, frequencyType, customDays, currentProgress, color, lastCompletedDate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.lastCompletedDate, habit.createdAt]
     );
   },
   
@@ -1192,8 +1170,8 @@ export const habitsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE habits SET name = ?, icon = ?, goal = ?, goalUnit = ?, type = ?, frequencyType = ?, customDays = ?, currentProgress = ?, streak = ?, xpReward = ?, energyReward = ?, color = ?, lastCompletedDate = ? WHERE id = ? AND userId = ?',
-      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, 0, habit.xpReward, habit.energyReward, habit.color, habit.lastCompletedDate, habit.id, userId]
+      'UPDATE habits SET name = ?, icon = ?, goal = ?, goalUnit = ?, type = ?, frequencyType = ?, customDays = ?, currentProgress = ?, color = ?, lastCompletedDate = ? WHERE id = ? AND userId = ?',
+      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.lastCompletedDate, habit.id, userId]
     );
   },
   

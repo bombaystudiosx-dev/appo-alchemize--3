@@ -440,11 +440,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700' as const,
   },
-  streakText: {
-    fontSize: 16,
-    color: '#f59e0b',
-    fontWeight: '700' as const,
-  },
+
   trendCard: {
     backgroundColor: 'rgba(26, 26, 26, 0.8)',
     borderRadius: 16,
