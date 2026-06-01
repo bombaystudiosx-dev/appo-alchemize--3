@@ -381,6 +381,7 @@ export async function initDatabase(): Promise<SQLite.SQLiteDatabase | null> {
       customDays TEXT NOT NULL,
       currentProgress INTEGER NOT NULL DEFAULT 0,
       color TEXT NOT NULL DEFAULT '#6366f1',
+      section TEXT NOT NULL DEFAULT 'custom',
       lastCompletedDate TEXT NOT NULL DEFAULT '',
       createdAt INTEGER NOT NULL
     );
@@ -869,6 +870,17 @@ if (!gratitudeHasReflection) {
   }
 }
 
+    const habitsHasSection = await checkColumn('habits', 'section');
+    if (!habitsHasSection) {
+      console.log('[Database] Adding section column to habits');
+      try {
+        await database.execAsync("ALTER TABLE habits ADD COLUMN section TEXT NOT NULL DEFAULT 'custom'");
+        console.log('[Database] Successfully added section column to habits');
+      } catch (e) {
+        console.log('[Database] section column may already exist:', e);
+      }
+    }
+    
     const nutritionProfileHasFiberTarget = await checkColumn('user_nutrition_profiles', 'dailyFiberTarget');
     if (!nutritionProfileHasFiberTarget) {
       console.log('[Database] Adding dailyFiberTarget column to user_nutrition_profiles');
@@ -1161,8 +1173,8 @@ export const habitsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'INSERT INTO habits (id, userId, name, icon, goal, goalUnit, type, frequencyType, customDays, currentProgress, color, lastCompletedDate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.lastCompletedDate, habit.createdAt]
+      'INSERT INTO habits (id, userId, name, icon, goal, goalUnit, type, frequencyType, customDays, currentProgress, color, section, lastCompletedDate, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [habit.id, userId, habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.section || 'custom', habit.lastCompletedDate, habit.createdAt]
     );
   },
   
@@ -1170,8 +1182,8 @@ export const habitsDb = {
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';
     await database.runAsync(
-      'UPDATE habits SET name = ?, icon = ?, goal = ?, goalUnit = ?, type = ?, frequencyType = ?, customDays = ?, currentProgress = ?, color = ?, lastCompletedDate = ? WHERE id = ? AND userId = ?',
-      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.lastCompletedDate, habit.id, userId]
+      'UPDATE habits SET name = ?, icon = ?, goal = ?, goalUnit = ?, type = ?, frequencyType = ?, customDays = ?, currentProgress = ?, color = ?, section = ?, lastCompletedDate = ? WHERE id = ? AND userId = ?',
+      [habit.name, habit.icon, habit.goal, habit.goalUnit || null, habit.type, habit.frequencyType, JSON.stringify(habit.customDays), habit.currentProgress, habit.color, habit.section || 'custom', habit.lastCompletedDate, habit.id, userId]
     );
   },
   

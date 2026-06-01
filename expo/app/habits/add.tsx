@@ -78,7 +78,7 @@ export default function AddHabitScreen() {
 
     const goalNum = parseInt(goal) || 1;
 
-    const habit: Habit & { section?: string } = {
+    const habit: Habit = {
       id: Date.now().toString(),
       name: name.trim(),
       icon,
@@ -89,12 +89,12 @@ export default function AddHabitScreen() {
       customDays: [],
       currentProgress: 0,
       color: '#6366f1',
+      section,
       lastCompletedDate: '',
       createdAt: Date.now(),
-      section,
     };
 
-    createMutation.mutate(habit as Habit);
+    createMutation.mutate(habit);
   };
 
   return (

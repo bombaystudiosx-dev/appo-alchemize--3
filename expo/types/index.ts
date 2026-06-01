@@ -57,6 +57,7 @@ export interface Habit {
   customDays: number[];
   currentProgress: number;
   color: string;
+  section?: string;
   lastCompletedDate: string;
   createdAt: number;
 }

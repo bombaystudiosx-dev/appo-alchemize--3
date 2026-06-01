@@ -46,15 +46,7 @@ export default function HabitsScreen() {
 
   const { data: allCompletions = [] } = useQuery({
     queryKey: ['habit-completions'],
-    queryFn: async () => {
-      const comps = [];
-      for (const habit of habits) {
-        const habitComps = await habitCompletionsDb.getByHabitId(habit.id);
-        comps.push(...habitComps);
-      }
-      return comps;
-    },
-    enabled: habits.length > 0,
+    queryFn: () => habitCompletionsDb.getAll(),
   });
 
   const completeHabitMutation = useMutation({
@@ -139,7 +131,7 @@ export default function HabitsScreen() {
     };
 
     habits.forEach((habit) => {
-      const section = (habit as any).section || 'custom';
+      const section = habit.section || 'custom';
       if (grouped[section as Section]) {
         grouped[section as Section].push(habit);
       } else {
@@ -450,7 +442,7 @@ export default function HabitsScreen() {
           })}
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {isLoading ? (
             <LoadingState message="Loading habits..." />
           ) : isError ? (

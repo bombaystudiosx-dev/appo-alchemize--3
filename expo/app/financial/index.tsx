@@ -457,7 +457,8 @@ export default function FinancialTrackerScreen() {
       >
         <View style={styles.overlay} />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <View style={styles.filterRow}>
             {(['monthly', 'quarterly', 'yearly'] as FilterPeriod[]).map((p) => (
@@ -764,6 +765,7 @@ export default function FinancialTrackerScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </ImageBackground>
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
