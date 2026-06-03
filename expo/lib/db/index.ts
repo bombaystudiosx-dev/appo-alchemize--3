@@ -7,4 +7,5 @@ export * from './fitness';
 export * from './finance';
 export * from './appointments';
 export * from './manifestations';
+export * from './habits';
 export * from './affirmations';
