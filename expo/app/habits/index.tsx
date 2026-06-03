@@ -8,7 +8,7 @@ import {
   ImageBackground,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Settings, ChevronDown, ChevronUp, Timer, Hash, CheckSquare, Play, Pause, Square } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
@@ -49,6 +49,13 @@ export default function HabitsScreen() {
     queryFn: () => habitCompletionsDb.getAll(),
   });
 
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
+    }, [queryClient])
+  );
+
   const completeHabitMutation = useMutation({
     mutationFn: async ({ habitId, value }: { habitId: string; value: number }) => {
       const dateStart = new Date(selectedDate).setHours(0, 0, 0, 0);
@@ -61,18 +68,27 @@ export default function HabitsScreen() {
         completedAt: Date.now(),
       });
 
-      const habit = habits.find(h => h.id === habitId);
-      if (habit) {
-        await habitsDb.update({
-          ...habit,
-          lastCompletedDate: new Date().toISOString(),
-        });
+      try {
+        const allHabits = await habitsDb.getAll();
+        const habit = allHabits.find(h => h.id === habitId);
+        if (habit) {
+          await habitsDb.update({
+            ...habit,
+            lastCompletedDate: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // Non-critical: habit metadata update is best-effort
       }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
       void queryClient.invalidateQueries({ queryKey: ['habits'] });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (error: any) => {
+      console.error('[Habits] Completion failed:', error);
+      Alert.alert('Error', 'Failed to log completion. Please try again.');
     },
   });
 

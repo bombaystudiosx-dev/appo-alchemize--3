@@ -769,23 +769,24 @@ export default function FinancialTrackerScreen() {
       </ImageBackground>
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
-        <KeyboardAvoidingView
-          style={styles.modalKeyboardAvoiding}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        >
-          <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
+          <KeyboardAvoidingView
+            style={styles.modalKeyboardAvoiding}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+          >
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>
+                {addModalType === 'income' ? 'Add Income' : 'Add Expense'}
+              </Text>
+
               <ScrollView
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={styles.modalScrollContent}
+                style={{ flex: 1 }}
               >
-                <View style={styles.modalHandle} />
-                <Text style={styles.modalTitle}>
-                  {addModalType === 'income' ? 'Add Income' : 'Add Expense'}
-                </Text>
-
                 <Text style={styles.modalLabel}>
                   {addModalType === 'income' ? 'Source / Title' : 'Expense Name'}
                 </Text>
@@ -834,28 +835,28 @@ export default function FinancialTrackerScreen() {
                   multiline
                   textAlignVertical="top"
                 />
-              </ScrollView>
 
-              <TouchableOpacity
-                style={[
-                  styles.submitBtn,
-                  addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
-                ]}
-                onPress={handleAddSubmit}
-                disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.submitBtnText}>
-                  {(addIncomeMutation.isPending || addExpenseMutation.isPending)
-                    ? 'Saving...'
-                    : addModalType === 'income'
-                    ? 'Add Income'
-                    : 'Add Expense'}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.submitBtn,
+                    addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
+                  ]}
+                  onPress={handleAddSubmit}
+                  disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.submitBtnText}>
+                    {(addIncomeMutation.isPending || addExpenseMutation.isPending)
+                      ? 'Saving...'
+                      : addModalType === 'income'
+                      ? 'Add Income'
+                      : 'Add Expense'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
             </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -1370,7 +1371,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoiding: {
-    flex: 1,
+    maxHeight: '85%',
   },
   modalContent: {
     backgroundColor: 'rgba(15, 10, 30, 0.98)',
@@ -1378,9 +1379,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
-    maxHeight: '85%',
     borderTopWidth: 1,
     borderTopColor: 'rgba(139, 92, 246, 0.3)',
+    flex: 1,
   },
   modalScrollContent: {
     paddingBottom: 16,
