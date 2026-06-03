@@ -95,7 +95,7 @@ export default function HabitsScreen() {
     (habitId: string, date: Date): boolean => {
       const dateStart = new Date(date).setHours(0, 0, 0, 0);
       return allCompletions.some((c) => {
-        const compDate = new Date(c.completedAt).setHours(0, 0, 0, 0);
+        const compDate = new Date(c.completionDate).setHours(0, 0, 0, 0);
         return c.habitId === habitId && compDate === dateStart;
       });
     },
@@ -105,7 +105,7 @@ export default function HabitsScreen() {
   const getDayCompletionCount = (date: Date): number => {
     const dateStart = new Date(date).setHours(0, 0, 0, 0);
     return allCompletions.filter((c) => {
-      const compDate = new Date(c.completedAt).setHours(0, 0, 0, 0);
+      const compDate = new Date(c.completionDate).setHours(0, 0, 0, 0);
       return compDate === dateStart;
     }).length;
   };

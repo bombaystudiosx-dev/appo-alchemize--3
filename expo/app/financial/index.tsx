@@ -771,7 +771,8 @@ export default function FinancialTrackerScreen() {
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
         <KeyboardAvoidingView
           style={styles.modalKeyboardAvoiding}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
@@ -833,25 +834,25 @@ export default function FinancialTrackerScreen() {
                   multiline
                   textAlignVertical="top"
                 />
-
-                <TouchableOpacity
-                  style={[
-                    styles.submitBtn,
-                    addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
-                  ]}
-                  onPress={handleAddSubmit}
-                  disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.submitBtnText}>
-                    {(addIncomeMutation.isPending || addExpenseMutation.isPending)
-                      ? 'Saving...'
-                      : addModalType === 'income'
-                      ? 'Add Income'
-                      : 'Add Expense'}
-                  </Text>
-                </TouchableOpacity>
               </ScrollView>
+
+              <TouchableOpacity
+                style={[
+                  styles.submitBtn,
+                  addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
+                ]}
+                onPress={handleAddSubmit}
+                disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.submitBtnText}>
+                  {(addIncomeMutation.isPending || addExpenseMutation.isPending)
+                    ? 'Saving...'
+                    : addModalType === 'income'
+                    ? 'Add Income'
+                    : 'Add Expense'}
+                </Text>
+              </TouchableOpacity>
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -1382,7 +1383,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(139, 92, 246, 0.3)',
   },
   modalScrollContent: {
-    paddingBottom: 72,
+    paddingBottom: 16,
   },
   modalHandle: {
     width: 40,

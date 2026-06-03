@@ -110,7 +110,7 @@ export default function AddHabitScreen() {
           </TouchableOpacity>
         </View>
 
-        <KeyboardAvoidingView style={styles.scrollView} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}>
+        <KeyboardAvoidingView style={styles.kbAvoiding} behavior={Platform.OS === 'ios' ? 'padding' : 'padding'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {name === '' && (
             <View style={styles.templatesSection}>
@@ -243,6 +243,7 @@ export default function AddHabitScreen() {
               ))}
             </View>
           </BlurView>
+          </ScrollView>
 
           <TouchableOpacity
             style={styles.saveButton}
@@ -258,7 +259,6 @@ export default function AddHabitScreen() {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        </ScrollView>
         </KeyboardAvoidingView>
       </LinearGradient>
     </ImageBackground>
@@ -285,6 +285,9 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#C9A7FF',
     letterSpacing: 0.5,
+  },
+  kbAvoiding: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
