@@ -223,7 +223,7 @@ export default function FinancialTrackerScreen() {
     if (notesData) {
       setLoginInfo(notesData.noteLoginInfo);
       setDebtNotes(notesData.noteTotalDebt);
-      setDebtAmount(notesData.debtAmount.toString());
+      setDebtAmount(String(notesData.debtAmount ?? 0));
     }
   }, [notesData]);
 
@@ -772,7 +772,7 @@ export default function FinancialTrackerScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
           <KeyboardAvoidingView
             style={styles.modalKeyboardAvoiding}
-            behavior="padding"
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
@@ -1371,7 +1371,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalKeyboardAvoiding: {
-    maxHeight: '85%',
+    flex: 1,
+    justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: 'rgba(15, 10, 30, 0.98)',

@@ -47,6 +47,17 @@ function getWebTable(name: string): any[] {
   return webStore[name];
 }
 
+function safeJsonParse<T>(value: unknown, fallback: T): T {
+  if (value == null) return fallback;
+  if (typeof value === 'object') return value as T;
+  if (typeof value !== 'string') return fallback;
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
 interface DatabaseAdapter {
   getAllAsync<T>(sql: string, params?: any[]): Promise<T[]>;
   getFirstAsync<T>(sql: string, params?: any[]): Promise<T | null>;
@@ -1019,7 +1030,7 @@ export const manifestationsDb = {
     const rows = await database.getAllAsync<any>('SELECT * FROM manifestations WHERE userId = ? ORDER BY createdAt DESC', [userId]);
     return rows.map((row) => ({
       ...row,
-      images: typeof row.images === 'string' ? JSON.parse(row.images) : Array.isArray(row.images) ? row.images : [],
+      images: safeJsonParse(row.images, []),
       isFavorite: Boolean(row.isFavorite),
       order: row.orderIndex ?? row.order ?? 0,
     }));
@@ -1032,7 +1043,7 @@ export const manifestationsDb = {
     if (!row) return null;
     return {
       ...row,
-      images: typeof row.images === 'string' ? JSON.parse(row.images) : Array.isArray(row.images) ? row.images : [],
+      images: safeJsonParse(row.images, []),
       isFavorite: Boolean(row.isFavorite),
       order: row.orderIndex ?? row.order ?? 0,
     };
@@ -1165,7 +1176,7 @@ export const habitsDb = {
     const rows = await database.getAllAsync<any>('SELECT * FROM habits WHERE userId = ? ORDER BY createdAt DESC', [userId]);
     return rows.map(row => ({
       ...row,
-      customDays: JSON.parse(row.customDays),
+      customDays: safeJsonParse(row.customDays, []),
     }));
   },
   
@@ -1396,7 +1407,7 @@ export const savedFoodsDb = {
     const rows = await database.getAllAsync<any>('SELECT * FROM saved_foods ORDER BY foodName');
     return rows.map(row => ({
       ...row,
-      tags: JSON.parse(row.tags),
+      tags: safeJsonParse(row.tags, []),
     }));
   },
   
@@ -1882,7 +1893,7 @@ export const fitnessPlansDb = {
     const rows = await database.getAllAsync<any>('SELECT * FROM fitness_plans ORDER BY createdAt DESC');
     return rows.map(row => ({
       ...row,
-      preferredCategories: JSON.parse(row.preferredCategories),
+      preferredCategories: safeJsonParse(row.preferredCategories, []),
       active: Boolean(row.active),
     }));
   },
@@ -1893,7 +1904,7 @@ export const fitnessPlansDb = {
     if (!row) return null;
     return {
       ...row,
-      preferredCategories: JSON.parse(row.preferredCategories),
+      preferredCategories: safeJsonParse(row.preferredCategories, []),
       active: Boolean(row.active),
     };
   },
