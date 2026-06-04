@@ -53,7 +53,8 @@ export default function HabitsScreen() {
     useCallback(() => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
-    }, [queryClient])
+      refetch();
+    }, [queryClient, refetch])
   );
 
   const completeHabitMutation = useMutation({

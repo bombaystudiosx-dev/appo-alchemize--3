@@ -457,7 +457,7 @@ export default function FinancialTrackerScreen() {
       >
         <View style={styles.overlay} />
 
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <View style={styles.filterRow}>
@@ -772,7 +772,7 @@ export default function FinancialTrackerScreen() {
         <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
           <KeyboardAvoidingView
             style={styles.modalKeyboardAvoiding}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior="padding"
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
           >
             <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
