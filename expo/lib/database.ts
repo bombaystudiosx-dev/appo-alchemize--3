@@ -1319,7 +1319,7 @@ export const financialNoteDb = {
       const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
       const userId = getCurrentUserId() ?? 'guest';
       const stored = await AsyncStorage.getItem(`financial_notes_${userId}`);
-      return stored ? JSON.parse(stored) : null;
+      return safeJsonParse<FinancialNote | null>(stored, null);
     }
     const database = await ensureDatabase();
     const userId = getCurrentUserId() ?? 'guest';

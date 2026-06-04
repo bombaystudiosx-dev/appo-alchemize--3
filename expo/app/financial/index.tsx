@@ -221,8 +221,8 @@ export default function FinancialTrackerScreen() {
 
   useEffect(() => {
     if (notesData) {
-      setLoginInfo(notesData.noteLoginInfo);
-      setDebtNotes(notesData.noteTotalDebt);
+      setLoginInfo(notesData.noteLoginInfo ?? '');
+      setDebtNotes(notesData.noteTotalDebt ?? '');
       setDebtAmount(String(notesData.debtAmount ?? 0));
     }
   }, [notesData]);
@@ -412,8 +412,8 @@ export default function FinancialTrackerScreen() {
     const debt = parseFloat(debtAmount) || 0;
     const note: FinancialNote = {
       id: notesData?.id || 'financial-note-1',
-      noteLoginInfo: loginInfo.trim(),
-      noteTotalDebt: debtNotes.trim(),
+      noteLoginInfo: (loginInfo ?? '').trim(),
+      noteTotalDebt: (debtNotes ?? '').trim(),
       debtAmount: debt,
       debtDueDate: notesData?.debtDueDate ?? null,
       savingsAmount: notesData?.savingsAmount ?? 0,
@@ -770,12 +770,7 @@ export default function FinancialTrackerScreen() {
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
-          <KeyboardAvoidingView
-            style={styles.modalKeyboardAvoiding}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-          >
-            <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>
                 {addModalType === 'income' ? 'Add Income' : 'Add Expense'}
@@ -854,8 +849,7 @@ export default function FinancialTrackerScreen() {
                   </Text>
                 </TouchableOpacity>
               </ScrollView>
-            </Pressable>
-          </KeyboardAvoidingView>
+          </Pressable>
         </Pressable>
       </Modal>
     </View>
