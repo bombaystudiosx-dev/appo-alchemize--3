@@ -25,15 +25,18 @@ import {
   Trash2,
   RotateCcw,
   X,
+  Star,
 } from 'lucide-react-native';
 import { appointmentsDb } from '@/lib/db/appointments';
-import type { Appointment } from '@/types';
+import { goalsDb } from '@/lib/db/goals';
+import type { Appointment, Goal } from '@/types';
 import { localDateKey } from '@/lib/date-utils';
 
 const DAYS_OF_WEEK = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
 const PERSONAL_COLOR = '#3b82f6';
 const BUSINESS_COLOR = '#22c55e';
+const GOAL_STAR_COLOR = '#f59e0b';
 const BACKGROUND_IMAGE = 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/8vtok42y20eo2gnggtrih';
 
 type FilterType = 'all' | 'personal' | 'business';
@@ -46,7 +49,10 @@ interface DayCellProps {
   isSelected: boolean;
   hasPersonal: boolean;
   hasBusiness: boolean;
+  hasGoalStar: boolean;
+  goalId: string | null;
   onPress: (dateKey: string) => void;
+  onGoalStarPress?: (goalId: string) => void;
 }
 
 const DayCell = memo(function DayCell({
@@ -57,11 +63,20 @@ const DayCell = memo(function DayCell({
   isSelected,
   hasPersonal,
   hasBusiness,
+  hasGoalStar,
+  goalId,
   onPress,
+  onGoalStarPress,
 }: DayCellProps) {
   const handlePress = useCallback(() => {
     onPress(dateKey);
   }, [dateKey, onPress]);
+
+  const handleStarPress = useCallback(() => {
+    if (goalId && onGoalStarPress) {
+      onGoalStarPress(goalId);
+    }
+  }, [goalId, onGoalStarPress]);
 
   return (
     <TouchableOpacity
@@ -73,6 +88,15 @@ const DayCell = memo(function DayCell({
       onPress={handlePress}
       activeOpacity={0.7}
     >
+      {hasGoalStar && (
+        <TouchableOpacity
+          style={styles.goalStarButton}
+          onPress={handleStarPress}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Star size={10} color={GOAL_STAR_COLOR} fill={GOAL_STAR_COLOR} />
+        </TouchableOpacity>
+      )}
       <Text
         style={[
           styles.dayText,
@@ -142,6 +166,7 @@ export default function AppointmentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [activeGoals, setActiveGoals] = useState<Goal[]>([]);
   const [selectedDateKey, setSelectedDateKey] = useState<string>(() => localDateKey(new Date()));
   const [viewDate, setViewDate] = useState<Date>(() => new Date());
   const [filter, setFilter] = useState<FilterType>('all');
@@ -165,10 +190,23 @@ export default function AppointmentsScreen() {
     }
   }, []);
 
+  const loadGoals = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      const goals = await goalsDb.getAll();
+      const active = goals.filter(g => g.status !== 'completed' && g.targetDate != null);
+      setActiveGoals(active);
+      console.log('[Appointments] Loaded', active.length, 'active goals with target dates');
+    } catch (error) {
+      console.error('[Appointments] Error loading goals:', error);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadAppointments();
-    }, [loadAppointments])
+      loadGoals();
+    }, [loadAppointments, loadGoals])
   );
 
   const calendarDays = useMemo(() => {
@@ -207,6 +245,21 @@ export default function AppointmentsScreen() {
 
     return result;
   }, [currentYear, currentMonth]);
+
+  const goalStarsByDate = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const goal of activeGoals) {
+      if (goal.targetDate) {
+        const key = localDateKey(new Date(goal.targetDate));
+        map.set(key, goal.id);
+      }
+    }
+    return map;
+  }, [activeGoals]);
+
+  const handleGoalStarPress = useCallback((goalId: string) => {
+    router.push(`/goals/${goalId}` as any);
+  }, [router]);
 
   const appointmentsByDate = useMemo(() => {
     const map = new Map<string, { personal: boolean; business: boolean; items: Appointment[] }>();
@@ -450,6 +503,8 @@ export default function AppointmentsScreen() {
               const entry = appointmentsByDate.get(dayData.dateKey);
               const hasPersonal = filter === 'business' ? false : (entry?.personal ?? false);
               const hasBusiness = filter === 'personal' ? false : (entry?.business ?? false);
+              const goalId = goalStarsByDate.get(dayData.dateKey) ?? null;
+              const hasGoalStar = goalId !== null;
 
               return (
                 <DayCell
@@ -461,7 +516,10 @@ export default function AppointmentsScreen() {
                   isSelected={dayData.dateKey === selectedDateKey}
                   hasPersonal={hasPersonal}
                   hasBusiness={hasBusiness}
+                  hasGoalStar={hasGoalStar}
+                  goalId={goalId}
                   onPress={handleDayPress}
+                  onGoalStarPress={handleGoalStarPress}
                 />
               );
             })}
@@ -724,6 +782,13 @@ const styles = StyleSheet.create({
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  goalStarButton: {
+    position: 'absolute',
+    top: 1,
+    right: 1,
+    zIndex: 10,
+    padding: 2,
   },
   dayCell: {
     width: '14.28%',

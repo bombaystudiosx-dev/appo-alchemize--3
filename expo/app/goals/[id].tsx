@@ -7,17 +7,20 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, CheckCircle2, Circle, Target, Calendar as CalendarIcon } from 'lucide-react-native';
+import { Plus, Trash2, CheckCircle2, Circle, Target, Calendar as CalendarIcon, Edit3, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { goalsDb, goalChecklistDb, goalCompletionsDb } from '@/lib/db/goals';
 import type { GoalChecklistItem, GoalCompletion } from '@/types';
 
 export default function GoalDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [newItemText, setNewItemText] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   const { data: goal } = useQuery({
     queryKey: ['goal', id],
@@ -53,8 +56,35 @@ export default function GoalDetailScreen() {
     },
   });
 
+  const updateItemTextMutation = useMutation({
+    mutationFn: (item: GoalChecklistItem) =>
+      goalChecklistDb.update(item),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goal-checklist', id] });
+      setEditingItemId(null);
+      setEditingText('');
+    },
+  });
+
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) => goalChecklistDb.delete(itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['goal-checklist', id] });
+    },
+  });
+
+  const moveItemMutation = useMutation({
+    mutationFn: async ({ itemId, direction }: { itemId: string; direction: 'up' | 'down' }) => {
+      const items = [...checklistItems];
+      const idx = items.findIndex(i => i.id === itemId);
+      if (idx === -1) return;
+      const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= items.length) return;
+      [items[idx], items[swapIdx]] = [items[swapIdx], items[idx]];
+      for (const item of items) {
+        await goalChecklistDb.update(item);
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['goal-checklist', id] });
     },
@@ -98,6 +128,24 @@ export default function GoalDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['goal-completions', id] });
     },
   });
+
+  const startEditingItem = (item: GoalChecklistItem) => {
+    setEditingItemId(item.id);
+    setEditingText(item.text);
+  };
+
+  const saveEditingItem = (item: GoalChecklistItem) => {
+    if (!editingText.trim() || editingText.trim() === item.text) {
+      setEditingItemId(null);
+      setEditingText('');
+      return;
+    }
+    updateItemTextMutation.mutate({ ...item, text: editingText.trim() });
+  };
+
+  const handleMoveItem = (itemId: string, direction: 'up' | 'down') => {
+    moveItemMutation.mutate({ itemId, direction });
+  };
 
   const handleAddItem = () => {
     if (!newItemText.trim()) return;
@@ -162,11 +210,27 @@ export default function GoalDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{goal.title}</Text>
-      {goal.description ? <Text style={styles.description}>{goal.description}</Text> : null}
-      {goal.targetDate && (
-        <Text style={styles.dueDate}>Due: {new Date(goal.targetDate).toLocaleDateString()}</Text>
-      )}
+      <View style={styles.titleRow}>
+        <View style={styles.titleTextContainer}>
+          <Text style={styles.title}>{goal.title}</Text>
+          {goal.description ? <Text style={styles.description}>{goal.description}</Text> : null}
+          {goal.targetDate && (
+            <Text style={styles.dueDate}>Due: {new Date(goal.targetDate).toLocaleDateString()}</Text>
+          )}
+        </View>
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => router.push(`/goals/add?id=${goal.id}` as any)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Edit3 color="#6366f1" size={20} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.statusBadge}>
+        <Text style={styles.statusText}>
+          {goal.status === 'not_started' ? 'Not Started' : goal.status === 'in_progress' ? 'In Progress' : 'Completed'}
+        </Text>
+      </View>
 
       <View style={styles.metricsGrid}>
         <View style={styles.metricCard}>
@@ -259,8 +323,24 @@ export default function GoalDetailScreen() {
         <Text style={styles.checklistTitle}>Checklist</Text>
       </View>
 
-      {checklistItems.map((item) => (
+      {checklistItems.map((item, index) => (
         <View key={item.id} style={styles.checklistItem}>
+          <View style={styles.reorderButtons}>
+            <TouchableOpacity
+              onPress={() => handleMoveItem(item.id, 'up')}
+              disabled={index === 0}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <ChevronUp color={index === 0 ? '#333' : '#666'} size={14} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleMoveItem(item.id, 'down')}
+              disabled={index === checklistItems.length - 1}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <ChevronDown color={index === checklistItems.length - 1 ? '#333' : '#666'} size={14} />
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
             onPress={() => toggleItemMutation.mutate(item)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -271,9 +351,27 @@ export default function GoalDetailScreen() {
               <Circle color="#666" size={22} />
             )}
           </TouchableOpacity>
-          <Text style={[styles.checklistText, item.isDone && styles.checklistTextDone]}>
-            {item.text}
-          </Text>
+          {editingItemId === item.id ? (
+            <TextInput
+              style={styles.checklistEditInput}
+              value={editingText}
+              onChangeText={setEditingText}
+              onSubmitEditing={() => saveEditingItem(item)}
+              onBlur={() => saveEditingItem(item)}
+              autoFocus
+              selectTextOnFocus
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.checklistTextTouchable}
+              onPress={() => startEditingItem(item)}
+              onLongPress={() => startEditingItem(item)}
+            >
+              <Text style={[styles.checklistText, item.isDone && styles.checklistTextDone]}>
+                {item.text}
+              </Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             onPress={() => deleteItemMutation.mutate(item.id)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -315,11 +413,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  titleTextContainer: {
+    flex: 1,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700' as const,
     color: '#fff',
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  editButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#1a1a1a',
+    marginBottom: 20,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: '#a0a0a0',
   },
   description: {
     fontSize: 16,
@@ -484,13 +614,29 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#fff',
   },
+  reorderButtons: {
+    flexDirection: 'column',
+    gap: 2,
+  },
   checklistItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#2a2a2a',
+  },
+  checklistEditInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#fff',
+    backgroundColor: '#2a2a2a',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  checklistTextTouchable: {
+    flex: 1,
   },
   checklistText: {
     flex: 1,
