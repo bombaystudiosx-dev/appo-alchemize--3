@@ -5,10 +5,13 @@ import { getSurrealDB, type User } from './surrealdb';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-  console.warn('[Auth] WARNING: JWT_SECRET not set. Using default for development only.');
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[Auth] JWT_SECRET must be set in production. Refusing to start with a predictable fallback.');
+  }
+  console.warn('[Auth] WARNING: JWT_SECRET not set. Using insecure fallback for development only.');
 }
 
-const getJwtSecret = () => JWT_SECRET || 'alchemize-dev-secret-' + (process.env.EXPO_PUBLIC_PROJECT_ID || 'local');
+const getJwtSecret = () => JWT_SECRET || 'alchemize-dev-secret-local';
 const JWT_EXPIRES_IN = '30d';
 
 export interface AuthTokenPayload {
