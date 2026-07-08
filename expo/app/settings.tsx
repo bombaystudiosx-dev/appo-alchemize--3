@@ -41,12 +41,15 @@ import {
   Smartphone,
   Bell,
   CalendarDays,
-  Star,
+  LifeBuoy,
+  Bug,
+  Lightbulb,
+  HelpCircle,
+  Send,
 } from 'lucide-react-native';
-import * as StoreReview from 'expo-store-review';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { resetDatabase } from '@/lib/database';
+import { resetDatabase } from '@/lib/db/core';
 import { registerForPushNotifications, getNotificationStatus } from '@/lib/notifications';
 import { requestCalendarPermission, getCalendarPermissionStatus } from '@/lib/calendar';
 import {
@@ -117,6 +120,10 @@ export default function SettingsScreen() {
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [calendarEnabled, setCalendarEnabled] = useState(false);
+  const [supportVisible, setSupportVisible] = useState<boolean>(false);
+  const [supportIssueType, setSupportIssueType] = useState<'bug' | 'feature' | 'account' | 'other'>('bug');
+  const [supportMessage, setSupportMessage] = useState<string>('');
+  const [supportSending, setSupportSending] = useState<boolean>(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -580,6 +587,56 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleSubmitSupport = async () => {
+    const trimmed = supportMessage.trim();
+    if (trimmed.length < 5) {
+      Alert.alert('Message Too Short', 'Please describe your issue in at least a few words.');
+      return;
+    }
+    setSupportSending(true);
+    try {
+      const typeLabel: Record<typeof supportIssueType, string> = {
+        bug: 'Bug Report',
+        feature: 'Feature Request',
+        account: 'Account Issue',
+        other: 'Other',
+      };
+      const subject = encodeURIComponent(`[Alchemize] ${typeLabel[supportIssueType]}`);
+      const bodyText = `Issue Type: ${typeLabel[supportIssueType]}\nUser: ${profile.displayName} (${profile.email || 'no email'})\nApp Version: ${APP_VERSION}\nPlatform: ${Platform.OS}\n\nMessage:\n${trimmed}`;
+      const body = encodeURIComponent(bodyText);
+      const url = `mailto:support@alchemize.app?subject=${subject}&body=${body}`;
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      }
+      const queueKey = '@alchemize_support_queue';
+      const existingRaw = await AsyncStorage.getItem(queueKey);
+      const existing = existingRaw ? (JSON.parse(existingRaw) as unknown[]) : [];
+      existing.push({
+        type: supportIssueType,
+        message: trimmed,
+        userEmail: profile.email,
+        createdAt: Date.now(),
+      });
+      await AsyncStorage.setItem(queueKey, JSON.stringify(existing));
+      console.log('[Settings] Support ticket logged');
+      Alert.alert(
+        'Report Sent',
+        canOpen
+          ? 'Your email app has opened with your report. Send it to complete the request.'
+          : 'Your report has been saved. We will reach out at support@alchemize.app.'
+      );
+      setSupportMessage('');
+      setSupportIssueType('bug');
+      setSupportVisible(false);
+    } catch (error) {
+      console.error('[Settings] Support submit error:', error);
+      Alert.alert('Error', 'Could not submit your report. Please try again.');
+    } finally {
+      setSupportSending(false);
+    }
+  };
+
   const handleResetData = () => {
     Alert.alert(
       'Reset All Data',
@@ -816,36 +873,6 @@ export default function SettingsScreen() {
           <ChevronRight color="#666" size={20} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingRow} onPress={async () => {
-          if (Platform.OS === 'web') {
-            Alert.alert('Not Available', 'Rating is only available on mobile devices.');
-            return;
-          }
-          try {
-            const isAvailable = await StoreReview.isAvailableAsync();
-            if (isAvailable) {
-              await StoreReview.requestReview();
-              console.log('[Settings] Store review requested');
-            } else {
-              Alert.alert('Not Available', 'In-app review is not available on this device.');
-            }
-          } catch (error) {
-            console.error('[Settings] Store review error:', error);
-            Alert.alert('Error', 'Could not open the review prompt. Please try again later.');
-          }
-        }}>
-          <View style={styles.settingRowLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: 'rgba(251, 191, 36, 0.15)' }]}>
-              <Star color="#fbbf24" size={20} />
-            </View>
-            <View style={styles.settingTextContainer}>
-              <Text style={styles.settingTitle}>Rate Alchemize</Text>
-              <Text style={styles.settingSubtitle}>Love the app? Leave us a review</Text>
-            </View>
-          </View>
-          <ChevronRight color="#666" size={20} />
-        </TouchableOpacity>
-
         {Platform.OS === 'web' && (
           <TouchableOpacity style={styles.settingRow} onPress={handlePwaInstall}>
             <View style={styles.settingRowLeft}>
@@ -872,6 +899,23 @@ export default function SettingsScreen() {
         )}
 
 
+      </View>
+
+      {/* Support Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>SUPPORT</Text>
+        <TouchableOpacity style={styles.settingRow} onPress={() => setSupportVisible(true)} testID="customer-support-row">
+          <View style={styles.settingRowLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: 'rgba(167, 139, 250, 0.15)' }]}>
+              <LifeBuoy color="#a78bfa" size={20} />
+            </View>
+            <View style={styles.settingTextContainer}>
+              <Text style={styles.settingTitle}>Customer Support</Text>
+              <Text style={styles.settingSubtitle}>Report a bug or send us a message</Text>
+            </View>
+          </View>
+          <ChevronRight color="#666" size={20} />
+        </TouchableOpacity>
       </View>
 
       {/* Data Section */}
@@ -1048,7 +1092,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE TERMS & CONDITIONS</Text>
-              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
+              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
 
               <Text style={styles.legalSectionTitle}>1. Agreement</Text>
               <Text style={styles.legalText}>
@@ -1244,7 +1288,7 @@ export default function SettingsScreen() {
             </View>
             <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.legalTitle}>ALCHEMIZE PRIVACY POLICY</Text>
-              <Text style={styles.legalDate}>Effective Date: April 15, 2026</Text>
+              <Text style={styles.legalDate}>Effective Date: December 16, 2025</Text>
 
               <Text style={styles.legalSectionTitle}>1. Overview</Text>
               <Text style={styles.legalText}>
@@ -1300,6 +1344,85 @@ export default function SettingsScreen() {
               <Text style={styles.legalSectionTitle}>10. Contact</Text>
               <Text style={styles.legalText}>
                 Questions or requests: support@alchemize.app
+              </Text>
+              <View style={styles.legalBottomPadding} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Customer Support Modal */}
+      <Modal
+        visible={supportVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSupportVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.fullModal}>
+            <View style={styles.fullModalHeader}>
+              <Text style={styles.fullModalTitle}>Customer Support</Text>
+              <TouchableOpacity onPress={() => setSupportVisible(false)} testID="close-support-modal">
+                <X color="#fff" size={24} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.fullModalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={styles.supportIntro}>
+                Tell us what&apos;s going on. We read every report and reply within 48 hours.
+              </Text>
+
+              <Text style={styles.supportLabel}>Issue Type</Text>
+              <View style={styles.supportTypeGrid}>
+                {([
+                  { id: 'bug', label: 'Bug', icon: Bug, color: '#ef4444' },
+                  { id: 'feature', label: 'Feature', icon: Lightbulb, color: '#fbbf24' },
+                  { id: 'account', label: 'Account', icon: User, color: '#a78bfa' },
+                  { id: 'other', label: 'Other', icon: HelpCircle, color: '#60a5fa' },
+                ] as const).map((opt) => {
+                  const Icon = opt.icon;
+                  const active = supportIssueType === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      style={[styles.supportTypeChip, active && { borderColor: opt.color, backgroundColor: `${opt.color}22` }]}
+                      onPress={() => setSupportIssueType(opt.id)}
+                      testID={`support-type-${opt.id}`}
+                    >
+                      <Icon color={active ? opt.color : '#888'} size={18} />
+                      <Text style={[styles.supportTypeChipText, active && { color: opt.color }]}>{opt.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={styles.supportLabel}>Message</Text>
+              <TextInput
+                style={styles.supportTextArea}
+                value={supportMessage}
+                onChangeText={setSupportMessage}
+                placeholder="Describe your issue, steps to reproduce, or your request..."
+                placeholderTextColor="#555"
+                multiline
+                textAlignVertical="top"
+                maxLength={2000}
+                testID="support-message-input"
+              />
+              <Text style={styles.supportCounter}>{supportMessage.length}/2000</Text>
+
+              <TouchableOpacity
+                style={[styles.supportSubmit, supportSending && { opacity: 0.6 }]}
+                onPress={handleSubmitSupport}
+                disabled={supportSending}
+                testID="support-submit"
+              >
+                <Send color="#fff" size={18} />
+                <Text style={styles.supportSubmitText}>
+                  {supportSending ? 'Sending...' : 'Send Report'}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.supportFooter}>
+                Or email us directly at support@alchemize.app
               </Text>
               <View style={styles.legalBottomPadding} />
             </ScrollView>
@@ -1599,6 +1722,81 @@ const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: '#ef4444',
     marginBottom: 2,
+  },
+  supportIntro: {
+    fontSize: 14,
+    color: '#bbb',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  supportLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#888',
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  supportTypeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  supportTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  supportTypeChipText: {
+    fontSize: 14,
+    color: '#bbb',
+    fontWeight: '600' as const,
+  },
+  supportTextArea: {
+    minHeight: 140,
+    backgroundColor: '#141414',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+    borderRadius: 12,
+    padding: 14,
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  supportCounter: {
+    alignSelf: 'flex-end',
+    color: '#666',
+    fontSize: 12,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  supportSubmit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#a78bfa',
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  supportSubmitText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700' as const,
+  },
+  supportFooter: {
+    color: '#666',
+    fontSize: 13,
+    textAlign: 'center' as const,
+    marginTop: 16,
   },
   signOutButton: {
     flexDirection: 'row',

@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import { invalidateTasks } from '../../services/queryInvalidationService';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, TextInput, Switch, Platform, Alert, KeyboardAvoidingView, Modal, ScrollView } from 'react-native';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, CheckCircle2, Circle, Calendar, Bell, ChevronRight, AlertCircle, X, FileText } from 'lucide-react-native';
-import { tasksDb } from '@/lib/database';
+import { Plus, Trash2, CheckCircle2, Circle, Calendar, Bell, ChevronRight, AlertCircle, X, FileText, Flame, Zap } from 'lucide-react-native';
+import { tasksDb } from '@/lib/db/tasks';
 import type { Task } from '@/types';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import { Image } from 'expo-image';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { getNextPriority } from '@/services/taskReminderService';
+import {
+  applyReminderNotificationId,
+  cancelTaskReminder,
+  getActiveScheduledNotificationIds,
+  scheduleTaskReminder,
+  shouldRescheduleMissingReminder,
+} from '@/services/notificationLifecycleService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -40,6 +49,31 @@ export default function TodosScreen() {
     queryFn: () => tasksDb.getAll(),
   });
 
+  const reconciledOnce = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    if (reconciledOnce.current) return;
+    if (allTasks.length === 0) return;
+    reconciledOnce.current = true;
+    (async () => {
+      try {
+        const activeIds = await getActiveScheduledNotificationIds();
+
+        for (const task of allTasks) {
+          if (!shouldRescheduleMissingReminder(task, activeIds)) continue;
+
+          const notificationId = await scheduleNotification(task);
+          if (notificationId) {
+            updateMutation.mutate(applyReminderNotificationId(task, notificationId));
+          }
+        }
+      } catch (e) {
+        console.error('[Todos] Reconcile reminders error:', e);
+      }
+    })();
+  }, [allTasks]);
+
   const filteredTasks = allTasks.filter((t) => {
     if (filterMode === 'active') return !t.isDone;
     if (filterMode === 'completed') return t.isDone;
@@ -57,7 +91,7 @@ export default function TodosScreen() {
   const createMutation = useMutation({
     mutationFn: (task: Task) => tasksDb.create(task),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      void invalidateTasks(queryClient);
       setNewTaskTitle('');
     },
   });
@@ -65,64 +99,27 @@ export default function TodosScreen() {
   const updateMutation = useMutation({
     mutationFn: (task: Task) => tasksDb.update(task),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      void invalidateTasks(queryClient);
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => tasksDb.delete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      void invalidateTasks(queryClient);
     },
   });
 
-  const scheduleNotification = async (task: Task) => {
-    if (Platform.OS === 'web') return null;
-
-    if (!task.dueDate || !task.reminderEnabled) return null;
-
-    try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please enable notifications to use reminders');
-        return null;
-      }
-
-      const dueDate = new Date(task.dueDate);
-      if (task.dueTime) {
-        const [hours, minutes] = task.dueTime.split(':');
-        dueDate.setHours(parseInt(hours), parseInt(minutes));
-      }
-
-      const reminderTime = new Date(dueDate.getTime() - 15 * 60 * 1000);
-
-      if (reminderTime.getTime() <= Date.now()) {
-        return null;
-      }
-
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Task Reminder',
-          body: task.title,
-          data: { taskId: task.id },
-        },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminderTime },
-      });
-
-      return notificationId;
-    } catch (error) {
-      console.error('Failed to schedule notification:', error);
-      return null;
-    }
+  const scheduleNotification = async (task: Task): Promise<string | null> => {
+    return scheduleTaskReminder(task, {
+      onPermissionDenied: () => {
+        Alert.alert('Permission Required', 'Please enable notifications in Settings to use reminders.');
+      },
+    });
   };
 
-  const cancelNotification = async (notificationId: string) => {
-    if (Platform.OS === 'web') return;
-    try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
-    } catch (error) {
-      console.error('Failed to cancel notification:', error);
-    }
+  const cancelNotification = async (notificationId?: string | null) => {
+    await cancelTaskReminder(notificationId);
   };
 
   const handleQuickAdd = async () => {
@@ -228,17 +225,68 @@ export default function TodosScreen() {
     updateMutation.mutate(updatedTask);
   };
 
-  const changePriority = (task: Task) => {
-    const priorities: ('low' | 'medium' | 'high' | null)[] = [null, 'low', 'medium', 'high'];
-    const currentIndex = priorities.indexOf(task.priority);
-    const nextPriority = priorities[(currentIndex + 1) % priorities.length];
+  const changePriority = async (task: Task) => {
+    const nextPriority = getNextPriority(task.priority);
 
-    const updatedTask: Task = {
+    let updatedTask: Task = {
       ...task,
       priority: nextPriority,
       updatedAt: Date.now(),
     };
 
+    if (nextPriority === 'high') {
+      if (!updatedTask.dueDate) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        updatedTask.dueDate = tomorrow.getTime();
+        updatedTask.dueTime = '09:00';
+      }
+      updatedTask.reminderEnabled = true;
+      if (task.notificationId) await cancelNotification(task.notificationId);
+      const notificationId = await scheduleNotification(updatedTask);
+      updatedTask.notificationId = notificationId;
+    } else if (task.priority === 'high' && nextPriority !== 'high') {
+      if (task.notificationId) {
+        await cancelNotification(task.notificationId);
+        updatedTask.notificationId = null;
+        updatedTask.reminderEnabled = false;
+      }
+    }
+
+    updateMutation.mutate(updatedTask);
+  };
+
+  const markUrgent = async (task: Task) => {
+    if (task.priority === 'high') {
+      const updatedTask: Task = { ...task, priority: null, reminderEnabled: false, updatedAt: Date.now() };
+      if (task.notificationId) {
+        await cancelNotification(task.notificationId);
+        updatedTask.notificationId = null;
+      }
+      updateMutation.mutate(updatedTask);
+      return;
+    }
+    let dueDate = task.dueDate;
+    let dueTime = task.dueTime;
+    if (!dueDate) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(9, 0, 0, 0);
+      dueDate = tomorrow.getTime();
+      dueTime = '09:00';
+    }
+    const updatedTask: Task = {
+      ...task,
+      priority: 'high',
+      reminderEnabled: true,
+      dueDate,
+      dueTime,
+      updatedAt: Date.now(),
+    };
+    if (task.notificationId) await cancelNotification(task.notificationId);
+    const notificationId = await scheduleNotification(updatedTask);
+    updatedTask.notificationId = notificationId;
     updateMutation.mutate(updatedTask);
   };
 
@@ -322,6 +370,12 @@ export default function TodosScreen() {
             </Text>
             
             <View style={styles.taskMetaRow}>
+              {item.priority === 'high' && (
+                <View style={styles.urgentBadge}>
+                  <Flame size={11} color="#fff" />
+                  <Text style={styles.urgentText}>URGENT</Text>
+                </View>
+              )}
               {item.dueDate && (
                 <View style={[styles.dueBadge, overdue && styles.overdueBadge, dueSoon && styles.dueSoonBadge]}>
                   <Calendar size={12} color={overdue ? '#fff' : dueSoon ? '#f59e0b' : '#6366f1'} />
@@ -393,6 +447,17 @@ export default function TodosScreen() {
                 <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(item.priority) }]} />
                 <Text style={styles.actionButtonText}>
                   {item.priority ? item.priority.charAt(0).toUpperCase() + item.priority.slice(1) : 'Priority'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionButton, item.priority === 'high' && styles.urgentActionButton]}
+                onPress={() => markUrgent(item)}
+                testID={`urgent-toggle-${item.id}`}
+              >
+                <Zap size={16} color={item.priority === 'high' ? '#fff' : '#ef4444'} />
+                <Text style={[styles.actionButtonText, item.priority === 'high' && styles.urgentActionButtonText]}>
+                  {item.priority === 'high' ? 'Urgent On' : 'Mark Urgent'}
                 </Text>
               </TouchableOpacity>
 
@@ -891,5 +956,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(16, 185, 129, 0.1)',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  urgentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: '#ef4444',
+  },
+  urgentText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '800' as const,
+    letterSpacing: 0.8,
+  },
+  urgentActionButton: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  urgentActionButtonText: {
+    color: '#fff',
+    fontWeight: '700' as const,
   },
 });

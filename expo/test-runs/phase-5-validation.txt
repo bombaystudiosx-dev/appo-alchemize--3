@@ -1,0 +1,5 @@
+Phase 5 validation:
+- notification lifecycle service added
+- task reminder reconciliation corrected
+- todos route patched to use lifecycle helpers
+- remaining direct scheduling route files: 0

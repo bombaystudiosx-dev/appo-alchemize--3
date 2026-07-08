@@ -1,9 +1,18 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PUSH_TOKEN_KEY = '@alchemize_push_token';
 const NOTIFICATION_ENABLED_KEY = '@alchemize_notifications_enabled';
+
+function getExpoProjectId(): string | undefined {
+  return (
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId ??
+    process.env.EXPO_PUBLIC_PROJECT_ID
+  );
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -46,8 +55,16 @@ export async function registerForPushNotifications(): Promise<string | null> {
       });
     }
 
+    const projectId = getExpoProjectId();
+
+    if (!projectId) {
+      console.warn('[Notifications] Expo projectId is not configured; skipping remote push token registration.');
+      await AsyncStorage.setItem(NOTIFICATION_ENABLED_KEY, 'true');
+      return null;
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
+      projectId,
     });
     const token = tokenData.data;
     console.log('[Notifications] Push token:', token);

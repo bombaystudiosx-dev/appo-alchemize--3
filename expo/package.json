@@ -3,10 +3,17 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --tunnel",
-    "start-web": "bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
-    "start-web-dev": "DEBUG=expo* bunx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
-    "lint": "expo lint"
+    "start": "npx rork start -p ys0io3mgiutfvjqh8r1ud --tunnel",
+    "start-web": "npx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
+    "start-web-dev": "DEBUG=expo* npx rork start -p ys0io3mgiutfvjqh8r1ud --web --tunnel",
+    "lint": "expo lint",
+    "validate:handoff": "node scripts/validate-handoff.js",
+    "validate:routes": "node scripts/route-manifest-check.js",
+    "validate:health": "node scripts/repo-health-check.js",
+    "validate:production": "node scripts/production-preflight.js",
+    "validate:final": "node scripts/final-validation.js",
+    "ci:local": "npm run validate:final && npx expo-doctor && npm run lint",
+    "ci:audit": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "@expo-google-fonts/akronim": "^0.4.0",
@@ -53,7 +60,6 @@
     "expo-splash-screen": "~31.0.13",
     "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
-    "expo-store-review": "^55.0.13",
     "expo-symbols": "~1.0.8",
     "expo-system-ui": "~6.0.9",
     "expo-web-browser": "~15.0.10",
@@ -83,6 +89,9 @@
     "eslint": "^9.31.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
+  },
+  "overrides": {
+    "expo-location": "$expo-location"
   },
   "private": true
 }

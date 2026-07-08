@@ -10,6 +10,8 @@ import {
   Modal,
   Pressable,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +31,7 @@ import {
   Save,
   Trash2,
 } from 'lucide-react-native';
-import { financialIncomeDb, financialExpenseDb, financialNoteDb } from '@/lib/database';
+import { financialIncomeDb, financialExpenseDb, financialNoteDb } from '@/lib/db/finance';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FinancialIncome, FinancialExpense, FinancialNote } from '@/types';
 const NOTEPAD_KEY = '@alchemize_financial_notepad';
@@ -219,9 +221,9 @@ export default function FinancialTrackerScreen() {
 
   useEffect(() => {
     if (notesData) {
-      setLoginInfo(notesData.noteLoginInfo);
-      setDebtNotes(notesData.noteTotalDebt);
-      setDebtAmount(notesData.debtAmount.toString());
+      setLoginInfo(notesData.noteLoginInfo ?? '');
+      setDebtNotes(notesData.noteTotalDebt ?? '');
+      setDebtAmount(String(notesData.debtAmount ?? 0));
     }
   }, [notesData]);
 
@@ -410,8 +412,8 @@ export default function FinancialTrackerScreen() {
     const debt = parseFloat(debtAmount) || 0;
     const note: FinancialNote = {
       id: notesData?.id || 'financial-note-1',
-      noteLoginInfo: loginInfo.trim(),
-      noteTotalDebt: debtNotes.trim(),
+      noteLoginInfo: (loginInfo ?? '').trim(),
+      noteTotalDebt: (debtNotes ?? '').trim(),
       debtAmount: debt,
       debtDueDate: notesData?.debtDueDate ?? null,
       savingsAmount: notesData?.savingsAmount ?? 0,
@@ -455,7 +457,8 @@ export default function FinancialTrackerScreen() {
       >
         <View style={styles.overlay} />
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           <View style={styles.filterRow}>
             {(['monthly', 'quarterly', 'yearly'] as FilterPeriod[]).map((p) => (
@@ -762,82 +765,90 @@ export default function FinancialTrackerScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+        </KeyboardAvoidingView>
       </ImageBackground>
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
         <Pressable style={styles.modalOverlay} onPress={() => setAddModalVisible(false)}>
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>
-              {addModalType === 'income' ? 'Add Income' : 'Add Expense'}
-            </Text>
+              <View style={styles.modalHandle} />
+              <Text style={styles.modalTitle}>
+                {addModalType === 'income' ? 'Add Income' : 'Add Expense'}
+              </Text>
 
-            <Text style={styles.modalLabel}>
-              {addModalType === 'income' ? 'Source / Title' : 'Expense Name'}
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              value={formTitle}
-              onChangeText={setFormTitle}
-              placeholder={addModalType === 'income' ? 'e.g. Salary, Freelance gig' : 'e.g. Rent, Groceries'}
-              placeholderTextColor="rgba(255,255,255,0.35)"
-            />
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalScrollContent}
+                style={{ flex: 1 }}
+              >
+                <Text style={styles.modalLabel}>
+                  {addModalType === 'income' ? 'Source / Title' : 'Expense Name'}
+                </Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={formTitle}
+                  onChangeText={setFormTitle}
+                  placeholder={addModalType === 'income' ? 'e.g. Salary, Freelance gig' : 'e.g. Rent, Groceries'}
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                />
 
-            <Text style={styles.modalLabel}>Amount ($)</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={formAmount}
-              onChangeText={setFormAmount}
-              placeholder="0.00"
-              placeholderTextColor="rgba(255,255,255,0.35)"
-              keyboardType="decimal-pad"
-            />
+                <Text style={styles.modalLabel}>Amount ($)</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={formAmount}
+                  onChangeText={setFormAmount}
+                  placeholder="0.00"
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  keyboardType="decimal-pad"
+                />
 
-            <Text style={styles.modalLabel}>Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-              {(addModalType === 'income' ? incomeCategories : expenseCategories).map((cat) => (
+                <Text style={styles.modalLabel}>Category</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                  {(addModalType === 'income' ? incomeCategories : expenseCategories).map((cat) => (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.categoryChip, formCategory === cat && styles.categoryChipActive]}
+                      onPress={() => setFormCategory(cat)}
+                    >
+                      <Text
+                        style={[styles.categoryChipText, formCategory === cat && styles.categoryChipTextActive]}
+                      >
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <Text style={styles.modalLabel}>Note (optional)</Text>
+                <TextInput
+                  style={[styles.modalInput, { minHeight: 60 }]}
+                  value={formNote}
+                  onChangeText={setFormNote}
+                  placeholder="Additional details..."
+                  placeholderTextColor="rgba(255,255,255,0.35)"
+                  multiline
+                  textAlignVertical="top"
+                />
+
                 <TouchableOpacity
-                  key={cat}
-                  style={[styles.categoryChip, formCategory === cat && styles.categoryChipActive]}
-                  onPress={() => setFormCategory(cat)}
+                  style={[
+                    styles.submitBtn,
+                    addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
+                  ]}
+                  onPress={handleAddSubmit}
+                  disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
+                  activeOpacity={0.8}
                 >
-                  <Text
-                    style={[styles.categoryChipText, formCategory === cat && styles.categoryChipTextActive]}
-                  >
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  <Text style={styles.submitBtnText}>
+                    {(addIncomeMutation.isPending || addExpenseMutation.isPending)
+                      ? 'Saving...'
+                      : addModalType === 'income'
+                      ? 'Add Income'
+                      : 'Add Expense'}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={styles.modalLabel}>Note (optional)</Text>
-            <TextInput
-              style={[styles.modalInput, { minHeight: 60 }]}
-              value={formNote}
-              onChangeText={setFormNote}
-              placeholder="Additional details..."
-              placeholderTextColor="rgba(255,255,255,0.35)"
-              multiline
-              textAlignVertical="top"
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.submitBtn,
-                addModalType === 'income' ? styles.submitBtnIncome : styles.submitBtnExpense,
-              ]}
-              onPress={handleAddSubmit}
-              disabled={addIncomeMutation.isPending || addExpenseMutation.isPending}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.submitBtnText}>
-                {(addIncomeMutation.isPending || addExpenseMutation.isPending)
-                  ? 'Saving...'
-                  : addModalType === 'income'
-                  ? 'Add Income'
-                  : 'Add Expense'}
-              </Text>
-            </TouchableOpacity>
+              </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1353,15 +1364,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'flex-end',
   },
+  modalKeyboardAvoiding: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   modalContent: {
     backgroundColor: 'rgba(15, 10, 30, 0.98)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 40,
-    maxHeight: '85%',
     borderTopWidth: 1,
     borderTopColor: 'rgba(139, 92, 246, 0.3)',
+    flex: 1,
+  },
+  modalScrollContent: {
+    paddingBottom: 16,
   },
   modalHandle: {
     width: 40,

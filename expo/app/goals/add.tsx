@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { invalidateGoals } from '../../services/queryInvalidationService';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,25 +8,64 @@ import {
   Text,
   ScrollView,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { goalsDb } from '@/lib/database';
-import type { Goal } from '@/types';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { goalsDb } from '@/lib/db/goals';
+import type { Goal, GoalStatus } from '@/types';
 
 export default function AddGoalScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { id: editId } = useLocalSearchParams<{ id?: string }>();
+  const isEditing = !!editId;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [status, setStatus] = useState<GoalStatus>('in_progress');
+
+  const { data: existingGoal } = useQuery({
+    queryKey: ['goal', editId],
+    queryFn: () => goalsDb.getById(editId!),
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (existingGoal) {
+      setTitle(existingGoal.title);
+      setDescription(existingGoal.description);
+      setStatus(existingGoal.status);
+      if (existingGoal.targetDate) {
+        const d = new Date(existingGoal.targetDate);
+        setDueDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      }
+    }
+  }, [existingGoal]);
 
   const createMutation = useMutation({
     mutationFn: (goal: Goal) => goalsDb.create(goal),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void invalidateGoals(queryClient);
       router.back();
+    },
+    onError: (error) => {
+      console.error('[Goals] Create error:', error);
+      Alert.alert('Error', 'Failed to save goal. Please try again.');
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (goal: Goal) => goalsDb.update(goal),
+    onSuccess: () => {
+      void invalidateGoals(queryClient);
+      router.back();
+    },
+    onError: (error) => {
+      console.error('[Goals] Update error:', error);
+      Alert.alert('Error', 'Failed to update goal. Please try again.');
     },
   });
 
@@ -35,26 +75,47 @@ export default function AddGoalScreen() {
       return;
     }
 
-    const goal: Goal = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      description: description.trim(),
-      targetDate: dueDate ? new Date(dueDate).getTime() : null,
-      status: 'not_started',
-      progress: 0,
-      streak: 0,
-      bestStreak: 0,
-      lastCompletedDate: null,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
+    let targetDate: number | null = null;
+    if (dueDate.trim()) {
+      const parsed = new Date(dueDate.trim()).getTime();
+      if (!Number.isNaN(parsed)) {
+        targetDate = parsed;
+      }
+    }
 
-    createMutation.mutate(goal);
+    if (isEditing && existingGoal) {
+      const updated: Goal = {
+        ...existingGoal,
+        title: title.trim(),
+        description: description.trim(),
+        targetDate,
+        status,
+        updatedAt: Date.now(),
+      };
+      updateMutation.mutate(updated);
+    } else {
+      const goal: Goal = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        description: description.trim(),
+        targetDate,
+        status,
+        progress: 0,
+        lastCompletedDate: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      createMutation.mutate(goal);
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>Title</Text>
         <TextInput
           style={styles.input}
@@ -85,17 +146,36 @@ export default function AddGoalScreen() {
           placeholderTextColor="#666"
         />
 
+        <Text style={styles.label}>Status</Text>
+        <View style={styles.statusRow}>
+          {(['not_started', 'in_progress', 'completed'] as GoalStatus[]).map((s) => (
+            <TouchableOpacity
+              key={s}
+              style={[styles.statusChip, status === s && styles.statusChipActive]}
+              onPress={() => setStatus(s)}
+            >
+              <Text style={[styles.statusChipText, status === s && styles.statusChipTextActive]}>
+                {s === 'not_started' ? 'Not Started' : s === 'in_progress' ? 'In Progress' : 'Completed'}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
-          disabled={createMutation.isPending}
+          disabled={createMutation.isPending || updateMutation.isPending}
         >
           <Text style={styles.saveButtonText}>
-            {createMutation.isPending ? 'Saving...' : 'Save Goal'}
+            {createMutation.isPending || updateMutation.isPending
+              ? 'Saving...'
+              : isEditing
+                ? 'Update Goal'
+                : 'Save Goal'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -129,6 +209,32 @@ const styles = StyleSheet.create({
   textArea: {
     minHeight: 120,
     paddingTop: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  statusChip: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#1a1a1a',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  statusChipActive: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  statusChipText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: '#666',
+  },
+  statusChipTextActive: {
+    color: '#fff',
   },
   saveButton: {
     backgroundColor: '#6366f1',

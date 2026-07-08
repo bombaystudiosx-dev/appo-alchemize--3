@@ -1,0 +1,4 @@
+Validation Summary:
+- route validation configured
+- barcode source normalization patched
+- reminder service boundary introduced

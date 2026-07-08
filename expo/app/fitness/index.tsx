@@ -3,11 +3,10 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Text, ImageBackground, 
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Play, TrendingUp, Award, ChevronRight, Plus, Watch, Dumbbell } from 'lucide-react-native';
-import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb, fitnessGoalsDb, fitnessPlansDb, awardsDb } from '@/lib/database';
+import { workoutTemplatesDb, workoutSessionsDb, normalizedMetricsDb, fitnessGoalsDb, fitnessPlansDb, awardsDb } from '@/lib/db/fitness';
 import {
   seedWorkoutTemplates,
   seedAwards,
-  calculateStreak,
   getTodayProgress,
   getWeekSummary,
   recommendWorkouts,
@@ -83,7 +82,6 @@ export default function FitnessHubScreen() {
     },
   });
 
-  const streak = useMemo(() => calculateStreak(sessions), [sessions]);
   const todayProgress = useMemo(() => getTodayProgress(sessions, todayMetric || null), [sessions, todayMetric]);
   const weekSummary = useMemo(() => getWeekSummary(sessions), [sessions]);
   const recommended = useMemo(() => recommendWorkouts(templates, sessions, activePlan || null), [templates, sessions, activePlan]);
@@ -191,7 +189,6 @@ export default function FitnessHubScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Your Week</Text>
-              <Text style={styles.streakText}>🔥 {streak} day streak</Text>
             </View>
             <View style={styles.weekContainer}>
               {weekDays.map((day, index) => (
@@ -443,11 +440,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700' as const,
   },
-  streakText: {
-    fontSize: 16,
-    color: '#f59e0b',
-    fontWeight: '700' as const,
-  },
+
   trendCard: {
     backgroundColor: 'rgba(26, 26, 26, 0.8)',
     borderRadius: 16,

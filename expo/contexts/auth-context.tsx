@@ -5,7 +5,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 
-import { setCurrentUserId } from '@/lib/database';
+import { setCurrentUserId } from '@/lib/db/core';
 
 const AUTH_STORAGE_KEY = '@alchemize_auth';
 const REMEMBER_ME_KEY = '@alchemize_remember_me';
@@ -26,8 +26,16 @@ interface StoredUser {
   id: string;
   email: string;
   name: string;
-  password: string;
+  passwordHash: string; // SHA-256(userId + ':' + password); empty string for OAuth users
 }
+
+// SHA-256 with userId as domain separator — prevents cross-user rainbow table attacks.
+// Uses expo-crypto which is already a project dependency.
+const hashPassword = (password: string, userId: string): Promise<string> =>
+  Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    `${userId}:${password}`
+  );
 
 export const [AuthProvider, useAuth] = createContextHook(() => {
   const [authState, setAuthState] = useState<AuthState>({
@@ -35,9 +43,10 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     token: null,
   });
   const [rememberMe, setRememberMeState] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    void loadAuthState();
+    void loadAuthState().finally(() => setIsLoading(false));
   }, []);
 
   const loadAuthState = async () => {
@@ -72,6 +81,32 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         console.log('[Auth] No stored auth found');
       }
 
+      // Migrate legacy users that still have plaintext 'password' field.
+      // Hash in-place so existing accounts survive the upgrade without re-registration.
+      try {
+        const rawUsers = await AsyncStorage.getItem(USERS_STORAGE_KEY);
+        if (rawUsers) {
+          const users = JSON.parse(rawUsers) as Array<Record<string, unknown>>;
+          const needsMigration = users.some(u => 'password' in u && !('passwordHash' in u));
+          if (needsMigration) {
+            const migrated = await Promise.all(
+              users.map(async u => {
+                if ('password' in u && !('passwordHash' in u)) {
+                  const { password, ...rest } = u as StoredUser & { password: string };
+                  return { ...rest, passwordHash: await hashPassword(password, rest.id) };
+                }
+                return u;
+              })
+            );
+            await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(migrated));
+            console.log('[Auth] Migrated legacy plaintext passwords to hashed format');
+          }
+        }
+      } catch {
+        console.warn('[Auth] Failed to migrate legacy passwords — clearing user store');
+        await AsyncStorage.removeItem(USERS_STORAGE_KEY).catch(() => {});
+      }
+
       if (storedRememberMe === 'true') {
         setRememberMeState(true);
       }
@@ -94,7 +129,8 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         return { success: false, error: 'User not found. Please sign up first.' };
       }
       
-      if (user.password !== password) {
+      const inputHash = await hashPassword(password, user.id);
+      if (user.passwordHash !== inputHash) {
         return { success: false, error: 'Invalid password' };
       }
 
@@ -142,7 +178,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         id: userId,
         email,
         name,
-        password,
+        passwordHash: await hashPassword(password, userId),
       };
       
       users.push(newUser);
@@ -215,7 +251,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
           id: appleUserId,
           email: appleEmail,
           name: appleName,
-          password: '',
+          passwordHash: '',
         };
         users.push(newUser);
         await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
@@ -259,18 +295,6 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     try {
       console.log('[Auth] Starting Google Sign In...');
 
-      const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
-      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-
-      console.log('[Auth] Google client IDs configured:', {
-        ios: iosClientId ? '✓ set' : '✗ missing',
-        web: webClientId ? '✓ set' : '✗ missing',
-      });
-
-      if (!iosClientId && !webClientId) {
-        console.warn('[Auth] No Google client IDs configured. Set EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID and EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID in your .env file.');
-      }
-
       const userId = `google_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const googleEmail = `user_${Date.now()}@gmail.com`;
       const googleName = 'Google User';
@@ -282,7 +306,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
         id: userId,
         email: googleEmail,
         name: googleName,
-        password: '',
+        passwordHash: '',
       };
       users.push(newUser);
       await AsyncStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
@@ -346,7 +370,7 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     user: authState.user,
     token: authState.token,
     isAuthenticated: !!authState.user,
-    isLoading: false,
+    isLoading,
     rememberMe,
     login,
     signup,
@@ -354,5 +378,5 @@ export const [AuthProvider, useAuth] = createContextHook(() => {
     loginWithGoogle,
     resetPassword,
     logout,
-  }), [authState.user, authState.token, rememberMe, login, signup, loginWithApple, loginWithGoogle, resetPassword, logout]);
+  }), [authState.user, authState.token, isLoading, rememberMe, login, signup, loginWithApple, loginWithGoogle, resetPassword, logout]);
 });

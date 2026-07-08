@@ -1,3 +1,4 @@
+import { invalidateFoodLogs } from '../../services/queryInvalidationService';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
@@ -43,16 +44,9 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { generateObject } from '@rork-ai/toolkit-sdk';
-
-const RORK_API_KEY = process.env.EXPO_PUBLIC_RORK_API_KEY ?? '';
-
-if (!RORK_API_KEY) {
-  console.warn('[FoodScanner] EXPO_PUBLIC_RORK_API_KEY is not set. AI food analysis may not work correctly.');
-} else {
-  console.log('[FoodScanner] API key configured ✓');
-}
 import { z } from 'zod';
-import { foodLogsDb, appointmentsDb } from '@/lib/database';
+import { foodLogsDb, appointmentsDb } from '@/lib/db';
+import { calculateFoodTotals, getAutoMealType, getConfidenceLabel, getHealthScoreColor, parseOptionalNumber } from '@/services/calorieAnalysisService';
 import type { FoodLog, MealType, Appointment } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -94,29 +88,6 @@ const MEAL_TYPES: { value: MealType; label: string; icon: string; timeRange: str
   { value: 'snack', label: 'Snack', icon: '🍎', timeRange: 'Anytime' },
 ];
 
-function getAutoMealType(): MealType {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 11) return 'breakfast';
-  if (hour >= 11 && hour < 15) return 'lunch';
-  if (hour >= 17 && hour < 22) return 'dinner';
-  return 'snack';
-}
-
-function getHealthScoreColor(score: number): string {
-  if (score >= 8) return '#22c55e';
-  if (score >= 6) return '#84cc16';
-  if (score >= 4) return '#eab308';
-  if (score >= 2) return '#f97316';
-  return '#ef4444';
-}
-
-function getConfidenceLabel(confidence: number): string {
-  if (confidence >= 90) return 'Very High';
-  if (confidence >= 75) return 'High';
-  if (confidence >= 55) return 'Moderate';
-  if (confidence >= 35) return 'Low';
-  return 'Very Low';
-}
 
 const ANALYSIS_PROMPT = `You are an expert nutritionist and food scientist with deep knowledge of the USDA FoodData Central database, international cuisines, and portion estimation.
 
@@ -169,6 +140,16 @@ export default function FoodScannerScreen() {
   const [showHealthInsight, setShowHealthInsight] = useState(true);
   const [analysisStage, setAnalysisStage] = useState<string>('');
   const [expandedFoodIndex, setExpandedFoodIndex] = useState<number | null>(null);
+  const [scanMode, setScanMode] = useState<'photo' | 'barcode'>('photo');
+  const [barcodeData, setBarcodeData] = useState<string | null>(null);
+  const [barcodeFoodName, setBarcodeFoodName] = useState('');
+  const [barcodeCalories, setBarcodeCalories] = useState('');
+  const [barcodeProtein, setBarcodeProtein] = useState('');
+  const [barcodeCarbs, setBarcodeCarbs] = useState('');
+  const [barcodeFat, setBarcodeFat] = useState('');
+  const [barcodeFiber, setBarcodeFiber] = useState('');
+  const [barcodeMealType, setBarcodeMealType] = useState<MealType>(getAutoMealType());
+  const [showBarcodeMealPicker, setShowBarcodeMealPicker] = useState(false);
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -208,13 +189,7 @@ export default function FoodScannerScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const computedTotals = useMemo(() => ({
-    calories: Math.round(editedFoods.reduce((sum, f) => sum + f.calories, 0)),
-    protein: Math.round(editedFoods.reduce((sum, f) => sum + f.protein, 0)),
-    carbs: Math.round(editedFoods.reduce((sum, f) => sum + f.carbs, 0)),
-    fat: Math.round(editedFoods.reduce((sum, f) => sum + f.fat, 0)),
-    fiber: Math.round(editedFoods.reduce((sum, f) => sum + f.fiber, 0)),
-  }), [editedFoods]);
+  const computedTotals = useMemo(() => calculateFoodTotals(editedFoods), [editedFoods]);
 
   const analyzeMutation = useMutation({
     mutationFn: async ({ imageBase64, hint }: { imageBase64: string; hint?: string }) => {
@@ -357,7 +332,7 @@ export default function FoodScannerScreen() {
       return logs;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['foodLogs'] });
+      invalidateFoodLogs(queryClient);
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.back();
@@ -442,6 +417,97 @@ export default function FoodScannerScreen() {
     saveFood(editedFoods);
   }, [editedFoods, saveFood]);
 
+  const handleBarcodeScanned = useCallback(({ data }: { data: string }) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setBarcodeData(data);
+  }, []);
+
+  const barcodeSaveMutation = useMutation({
+    mutationFn: async () => {
+      if (Platform.OS === 'web') return;
+      if (!barcodeData || !barcodeFoodName.trim() || !barcodeCalories.trim()) return;
+
+      const calories = parseFloat(barcodeCalories);
+      if (isNaN(calories)) return;
+
+      const log: FoodLog = {
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        foodName: barcodeFoodName.trim(),
+        servingDescription: '1 serving (barcode scanned)',
+        calories,
+        proteinGrams: parseOptionalNumber(barcodeProtein),
+        carbGrams: parseOptionalNumber(barcodeCarbs),
+        fatGrams: parseOptionalNumber(barcodeFat),
+        sugarGrams: null,
+        fiberGrams: parseOptionalNumber(barcodeFiber),
+        mealType: barcodeMealType,
+        sourceType: 'barcode',
+        loggedAt: Date.now(),
+        isLocked: true,
+        calendarEventId: null,
+      };
+
+      const calendarEventId = `cal-${Date.now()}`;
+      const loggedDate = new Date(log.loggedAt);
+      const timeStr = loggedDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+      const calendarEvent: Appointment = {
+        id: calendarEventId,
+        title: `${log.foodName} (${log.mealType})`,
+        date: new Date(loggedDate.getFullYear(), loggedDate.getMonth(), loggedDate.getDate()).getTime(),
+        time: timeStr,
+        category: 'nutrition',
+        notes: `${log.calories} cal | Barcode: ${barcodeData} | P: ${log.proteinGrams || 0}g C: ${log.carbGrams || 0}g F: ${log.fatGrams || 0}g`,
+        reminder: false,
+        createdAt: Date.now(),
+        metadata: JSON.stringify({
+          foodLogId: log.id,
+          barcode: barcodeData,
+          calories: log.calories,
+          protein: log.proteinGrams,
+          carbs: log.carbGrams,
+          fat: log.fatGrams,
+          fiber: log.fiberGrams,
+          source: 'barcode',
+          isLocked: log.isLocked,
+        }),
+      };
+
+      await appointmentsDb.create(calendarEvent);
+      await foodLogsDb.create({ ...log, calendarEventId });
+      return log;
+    },
+    onSuccess: () => {
+      invalidateFoodLogs(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBarcodeData(null);
+      setBarcodeFoodName('');
+      setBarcodeCalories('');
+      setBarcodeProtein('');
+      setBarcodeCarbs('');
+      setBarcodeFat('');
+      setBarcodeFiber('');
+      router.back();
+    },
+    onError: (error) => {
+      console.error('Barcode save error:', error);
+      Alert.alert('Error', 'Failed to save barcode food entry. Please try again.');
+    },
+  });
+
+  const handleBarcodeSave = useCallback(() => {
+    if (!barcodeFoodName.trim()) {
+      Alert.alert('Error', 'Please enter a food name');
+      return;
+    }
+    if (!barcodeCalories.trim() || isNaN(parseFloat(barcodeCalories))) {
+      Alert.alert('Error', 'Please enter valid calories');
+      return;
+    }
+    barcodeSaveMutation.mutate();
+  }, [barcodeFoodName, barcodeCalories, barcodeSaveMutation]);
+
   if (!permission) {
     return (
       <View style={[styles.container, styles.centered]}>
@@ -473,6 +539,154 @@ export default function FoodScannerScreen() {
             <Text style={styles.galleryButtonText}>Choose from Gallery</Text>
           </TouchableOpacity>
         </View>
+      </View>
+    );
+  }
+
+  if (barcodeData) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={['#0a0a0f', '#0d0d15', '#0a0a0f']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity onPress={() => setBarcodeData(null)} style={styles.headerBtn}>
+            <RotateCcw size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Barcode Entry</Text>
+            <Text style={styles.headerSubtitle}>Code: {barcodeData}</Text>
+          </View>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <X size={22} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={styles.resultsScroll}
+          contentContainerStyle={[styles.resultsContent, { paddingBottom: insets.bottom + 24 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.barcodeInfoCard}>
+            <Text style={styles.barcodeLabel}>Scanned Barcode</Text>
+            <Text style={styles.barcodeValue}>{barcodeData}</Text>
+            <Text style={styles.barcodeHint}>Product not found in database. Please enter the details below.</Text>
+          </View>
+
+          <View style={styles.barcodeForm}>
+            <Text style={styles.sectionLabel}>Food Details</Text>
+            <TextInput
+              style={styles.barcodeInput}
+              value={barcodeFoodName}
+              onChangeText={setBarcodeFoodName}
+              placeholder="Food name (e.g., Organic Oats)"
+              placeholderTextColor="#555"
+            />
+            <TextInput
+              style={styles.barcodeInput}
+              value={barcodeCalories}
+              onChangeText={setBarcodeCalories}
+              placeholder="Calories"
+              placeholderTextColor="#555"
+              keyboardType="decimal-pad"
+            />
+            <View style={styles.barcodeMacrosRow}>
+              <TextInput
+                style={[styles.barcodeInput, styles.barcodeMacroInput]}
+                value={barcodeProtein}
+                onChangeText={setBarcodeProtein}
+                placeholder="Protein (g)"
+                placeholderTextColor="#555"
+                keyboardType="decimal-pad"
+              />
+              <TextInput
+                style={[styles.barcodeInput, styles.barcodeMacroInput]}
+                value={barcodeCarbs}
+                onChangeText={setBarcodeCarbs}
+                placeholder="Carbs (g)"
+                placeholderTextColor="#555"
+                keyboardType="decimal-pad"
+              />
+              <TextInput
+                style={[styles.barcodeInput, styles.barcodeMacroInput]}
+                value={barcodeFat}
+                onChangeText={setBarcodeFat}
+                placeholder="Fat (g)"
+                placeholderTextColor="#555"
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <TextInput
+              style={styles.barcodeInput}
+              value={barcodeFiber}
+              onChangeText={setBarcodeFiber}
+              placeholder="Fiber (g) - optional"
+              placeholderTextColor="#555"
+              keyboardType="decimal-pad"
+            />
+          </View>
+
+          <View style={styles.mealTypeSelector}>
+            <Text style={styles.sectionLabel}>Log to</Text>
+            <TouchableOpacity
+              style={styles.mealTypeButton}
+              onPress={() => setShowBarcodeMealPicker(!showBarcodeMealPicker)}
+            >
+              <Text style={styles.mealTypeEmoji}>
+                {MEAL_TYPES.find(m => m.value === barcodeMealType)?.icon}
+              </Text>
+              <View style={styles.mealTypeInfo}>
+                <Text style={styles.mealTypeText}>
+                  {MEAL_TYPES.find(m => m.value === barcodeMealType)?.label}
+                </Text>
+              </View>
+              <ChevronDown size={18} color="#666" />
+            </TouchableOpacity>
+
+            {showBarcodeMealPicker && (
+              <View style={styles.mealPickerDropdown}>
+                {MEAL_TYPES.map((meal) => (
+                  <TouchableOpacity
+                    key={meal.value}
+                    style={[
+                      styles.mealPickerItem,
+                      barcodeMealType === meal.value && styles.mealPickerItemSelected,
+                    ]}
+                    onPress={() => {
+                      setBarcodeMealType(meal.value);
+                      setShowBarcodeMealPicker(false);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <Text style={styles.mealPickerEmoji}>{meal.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.mealPickerText}>{meal.label}</Text>
+                      <Text style={styles.mealPickerTime}>{meal.timeRange}</Text>
+                    </View>
+                    {barcodeMealType === meal.value && <Check size={18} color="#22c55e" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleBarcodeSave}
+            disabled={barcodeSaveMutation.isPending}
+          >
+            {barcodeSaveMutation.isPending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <ShieldCheck size={20} color="#fff" />
+                <Text style={styles.saveButtonText}>Log Food</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     );
   }
@@ -932,6 +1146,10 @@ export default function FoodScannerScreen() {
         ref={cameraRef}
         style={styles.camera}
         facing="back"
+        barcodeScannerSettings={scanMode === 'barcode' ? {
+          barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128'],
+        } : undefined}
+        onBarcodeScanned={scanMode === 'barcode' ? handleBarcodeScanned : undefined}
       >
         <LinearGradient
           colors={['rgba(0,0,0,0.7)', 'transparent', 'transparent', 'rgba(0,0,0,0.7)']}
@@ -943,28 +1161,50 @@ export default function FoodScannerScreen() {
             <X size={26} color="#fff" />
           </TouchableOpacity>
           <View style={styles.cameraTitleGroup}>
-            <Text style={styles.cameraTitle}>AI Food Scanner</Text>
-            <Text style={styles.cameraSubtitle}>Point at your food</Text>
+            <Text style={styles.cameraTitle}>{scanMode === 'barcode' ? 'Barcode Scanner' : 'AI Food Scanner'}</Text>
+            <Text style={styles.cameraSubtitle}>{scanMode === 'barcode' ? 'Align barcode in frame' : 'Point at your food'}</Text>
           </View>
           <View style={styles.closeBtnPlaceholder} />
         </View>
 
         <View style={styles.scanFrameContainer}>
-          <View style={styles.scanFrame}>
-            <View style={[styles.scanCorner, styles.scanCornerTL]} />
-            <View style={[styles.scanCorner, styles.scanCornerTR]} />
-            <View style={[styles.scanCorner, styles.scanCornerBL]} />
-            <View style={[styles.scanCorner, styles.scanCornerBR]} />
-          </View>
+          {scanMode === 'barcode' ? (
+            <View style={styles.barcodeFrame}>
+              <View style={[styles.barcodeCorner, styles.barcodeCornerTL]} />
+              <View style={[styles.barcodeCorner, styles.barcodeCornerTR]} />
+              <View style={[styles.barcodeCorner, styles.barcodeCornerBL]} />
+              <View style={[styles.barcodeCorner, styles.barcodeCornerBR]} />
+            </View>
+          ) : (
+            <View style={styles.scanFrame}>
+              <View style={[styles.scanCorner, styles.scanCornerTL]} />
+              <View style={[styles.scanCorner, styles.scanCornerTR]} />
+              <View style={[styles.scanCorner, styles.scanCornerBL]} />
+              <View style={[styles.scanCorner, styles.scanCornerBR]} />
+            </View>
+          )}
           <View style={styles.scanHintContainer}>
-            <Brain size={16} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.scanHint}>Include the full plate for best accuracy</Text>
+            {scanMode === 'barcode' ? (
+              <>
+                <Sparkles size={16} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.scanHint}>Align barcode within the frame</Text>
+              </>
+            ) : (
+              <>
+                <Brain size={16} color="rgba(255,255,255,0.7)" />
+                <Text style={styles.scanHint}>Include the full plate for best accuracy</Text>
+              </>
+            )}
           </View>
         </View>
 
         <View style={styles.tipsBanner}>
           <Info size={14} color="#22c55e" />
-          <Text style={styles.tipText}>Tip: Good lighting + full plate = better results</Text>
+          <Text style={styles.tipText}>
+            {scanMode === 'barcode'
+              ? 'Tip: Hold steady and keep the barcode in focus'
+              : 'Tip: Good lighting + full plate = better results'}
+          </Text>
         </View>
 
         <View style={[styles.cameraControls, { paddingBottom: insets.bottom + 32 }]}>
@@ -973,18 +1213,36 @@ export default function FoodScannerScreen() {
             <Text style={styles.controlLabel}>Gallery</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.captureButton} onPress={takePicture} activeOpacity={0.85} testID="capture-btn">
-            <View style={styles.captureButtonOuter}>
-              <View style={styles.captureButtonInner}>
-                <Camera size={28} color="#0a0a0f" />
+          {scanMode === 'photo' ? (
+            <TouchableOpacity style={styles.captureButton} onPress={takePicture} activeOpacity={0.85} testID="capture-btn">
+              <View style={styles.captureButtonOuter}>
+                <View style={styles.captureButtonInner}>
+                  <Camera size={28} color="#0a0a0f" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.captureButton}>
+              <View style={styles.captureButtonOuter}>
+                <View style={[styles.captureButtonInner, { backgroundColor: '#6366f1' }]}>
+                  <Sparkles size={28} color="#fff" />
+                </View>
               </View>
             </View>
-          </TouchableOpacity>
+          )}
 
-          <View style={styles.controlPlaceholder}>
-            <Sparkles size={22} color="rgba(255,255,255,0.4)" />
-            <Text style={[styles.controlLabel, { color: 'rgba(255,255,255,0.4)' }]}>AI Scan</Text>
-          </View>
+          <TouchableOpacity
+            style={styles.modeToggleButton}
+            onPress={() => {
+              setScanMode(scanMode === 'photo' ? 'barcode' : 'photo');
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+          >
+            <Sparkles size={22} color={scanMode === 'barcode' ? '#6366f1' : 'rgba(255,255,255,0.4)'} />
+            <Text style={[styles.controlLabel, { color: scanMode === 'barcode' ? '#6366f1' : 'rgba(255,255,255,0.4)' }]}>
+              {scanMode === 'photo' ? 'Barcode' : 'AI Scan'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </CameraView>
     </View>
@@ -1002,6 +1260,101 @@ const styles = StyleSheet.create({
   },
   camera: {
     flex: 1,
+  },
+  barcodeInfoCard: {
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.2)',
+    gap: 8,
+  },
+  barcodeLabel: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+  barcodeValue: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: '#fff',
+  },
+  barcodeHint: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  barcodeForm: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  barcodeInput: {
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  barcodeMacrosRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  barcodeMacroInput: {
+    flex: 1,
+  },
+  barcodeFrame: {
+    width: SCREEN_WIDTH * 0.8,
+    height: 120,
+    position: 'relative',
+    borderRadius: 8,
+  },
+  barcodeCorner: {
+    position: 'absolute',
+    width: 30,
+    height: 30,
+    borderColor: '#6366f1',
+  },
+  barcodeCornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 4,
+    borderLeftWidth: 4,
+    borderTopLeftRadius: 8,
+  },
+  barcodeCornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 4,
+    borderRightWidth: 4,
+    borderTopRightRadius: 8,
+  },
+  barcodeCornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 4,
+    borderLeftWidth: 4,
+    borderBottomLeftRadius: 8,
+  },
+  barcodeCornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 4,
+    borderRightWidth: 4,
+    borderBottomRightRadius: 8,
+  },
+  modeToggleButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cameraHeader: {
     position: 'absolute',

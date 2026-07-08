@@ -1,8 +1,9 @@
+import { invalidateTasks } from '../../services/queryInvalidationService';
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { tasksDb } from '@/lib/database';
+import { tasksDb } from '@/lib/db/tasks';
 import type { Task } from '@/types';
 
 export default function AddTaskScreen() {
@@ -16,8 +17,12 @@ export default function AddTaskScreen() {
   const createMutation = useMutation({
     mutationFn: (task: Task) => tasksDb.create(task),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      invalidateTasks(queryClient);
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[AddTask] Save failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save task. Please try again.');
     },
   });
 
@@ -48,8 +53,12 @@ export default function AddTaskScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <Text style={styles.label}>Title</Text>
         <TextInput
           style={styles.input}
@@ -90,7 +99,7 @@ export default function AddTaskScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

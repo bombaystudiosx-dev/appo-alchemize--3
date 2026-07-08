@@ -8,13 +8,15 @@ import {
   ScrollView,
   Alert,
   ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { X, Timer, CheckSquare, Hash } from 'lucide-react-native';
-import { habitsDb } from '@/lib/database';
+import { habitsDb } from '@/lib/db';
 import type { Habit, HabitType } from '@/types';
 import { ASSETS } from '@/constants/assets';
 
@@ -29,11 +31,11 @@ const HABIT_TYPES: { type: HabitType; label: string; icon: any }[] = [
 ];
 
 const TEMPLATES = [
-  { emoji: '🧘', name: 'Meditate', type: 'timer' as HabitType, goal: 15, goalUnit: 'minutes' as const, xpReward: 15, energyReward: 4 },
-  { emoji: '💪', name: 'Exercise', type: 'timer' as HabitType, goal: 30, goalUnit: 'minutes' as const, xpReward: 25, energyReward: 8 },
-  { emoji: '📚', name: 'Read', type: 'timer' as HabitType, goal: 20, goalUnit: 'minutes' as const, xpReward: 20, energyReward: 5 },
-  { emoji: '💧', name: 'Drink Water', type: 'counter' as HabitType, goal: 8, goalUnit: 'times' as const, xpReward: 10, energyReward: 3 },
-  { emoji: '🌅', name: 'Wake Up Early', type: 'checkbox' as HabitType, goal: 1, goalUnit: 'times' as const, xpReward: 10, energyReward: 5 },
+  { emoji: '🧘', name: 'Meditate', type: 'timer' as HabitType, goal: 15, goalUnit: 'minutes' as const },
+  { emoji: '💪', name: 'Exercise', type: 'timer' as HabitType, goal: 30, goalUnit: 'minutes' as const },
+  { emoji: '📚', name: 'Read', type: 'timer' as HabitType, goal: 20, goalUnit: 'minutes' as const },
+  { emoji: '💧', name: 'Drink Water', type: 'counter' as HabitType, goal: 8, goalUnit: 'times' as const },
+  { emoji: '🌅', name: 'Wake Up Early', type: 'checkbox' as HabitType, goal: 1, goalUnit: 'times' as const },
 ];
 
 export default function AddHabitScreen() {
@@ -47,14 +49,16 @@ export default function AddHabitScreen() {
   const [icon, setIcon] = useState('✨');
   const [goal, setGoal] = useState('1');
   const [goalUnit, setGoalUnit] = useState<'minutes' | 'hours' | 'times'>('times');
-  const [xpReward, setXpReward] = useState('5');
-  const [energyReward, setEnergyReward] = useState('1');
 
   const createMutation = useMutation({
     mutationFn: (habit: Habit) => habitsDb.create(habit),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['habits'] });
       router.back();
+    },
+    onError: (error: any) => {
+      console.error('[AddHabit] Save failed:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save habit. Please try again.');
     },
   });
 
@@ -64,8 +68,6 @@ export default function AddHabitScreen() {
     setHabitType(template.type);
     setGoal(template.goal.toString());
     setGoalUnit(template.goalUnit);
-    setXpReward(template.xpReward.toString());
-    setEnergyReward(template.energyReward.toString());
   };
 
   const handleSave = () => {
@@ -75,10 +77,8 @@ export default function AddHabitScreen() {
     }
 
     const goalNum = parseInt(goal) || 1;
-    const xpNum = parseInt(xpReward) || 5;
-    const energyNum = parseInt(energyReward) || 1;
 
-    const habit: Habit & { section?: string } = {
+    const habit: Habit = {
       id: Date.now().toString(),
       name: name.trim(),
       icon,
@@ -88,16 +88,13 @@ export default function AddHabitScreen() {
       frequencyType,
       customDays: [],
       currentProgress: 0,
-      streak: 0,
-      xpReward: xpNum,
-      energyReward: energyNum,
       color: '#6366f1',
+      section,
       lastCompletedDate: '',
       createdAt: Date.now(),
-      section,
     };
 
-    createMutation.mutate(habit as Habit);
+    createMutation.mutate(habit);
   };
 
   return (
@@ -113,7 +110,8 @@ export default function AddHabitScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        <KeyboardAvoidingView style={styles.kbAvoiding} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {name === '' && (
             <View style={styles.templatesSection}>
               <Text style={styles.templatesTitle}>Quick Start Templates</Text>
@@ -215,32 +213,6 @@ export default function AddHabitScreen() {
               </>
             )}
 
-            <Text style={styles.label}>Rewards</Text>
-            <View style={styles.rewardsRow}>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardLabel}>🏆 XP</Text>
-                <TextInput
-                  style={[styles.input, styles.rewardInput]}
-                  value={xpReward}
-                  onChangeText={setXpReward}
-                  placeholder="5"
-                  placeholderTextColor="rgba(201, 167, 255, 0.4)"
-                  keyboardType="number-pad"
-                />
-              </View>
-              <View style={styles.rewardItem}>
-                <Text style={styles.rewardLabel}>⚡ Energy</Text>
-                <TextInput
-                  style={[styles.input, styles.rewardInput]}
-                  value={energyReward}
-                  onChangeText={setEnergyReward}
-                  placeholder="1"
-                  placeholderTextColor="rgba(201, 167, 255, 0.4)"
-                  keyboardType="number-pad"
-                />
-              </View>
-            </View>
-
             <Text style={styles.label}>Section</Text>
             <View style={styles.chipContainer}>
               {SECTIONS.map((sec) => (
@@ -286,7 +258,8 @@ export default function AddHabitScreen() {
               </Text>
             </LinearGradient>
           </TouchableOpacity>
-        </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
     </ImageBackground>
   );
@@ -312,6 +285,9 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#C9A7FF',
     letterSpacing: 0.5,
+  },
+  kbAvoiding: {
+    flex: 1,
   },
   scrollView: {
     flex: 1,
@@ -497,22 +473,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#C9A7FF',
     fontWeight: '600' as const,
-  },
-  rewardsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  rewardItem: {
-    flex: 1,
-  },
-  rewardLabel: {
-    fontSize: 13,
-    fontWeight: '600' as const,
-    color: '#C9A7FF',
-    marginBottom: 8,
-  },
-  rewardInput: {
-    marginTop: 0,
   },
   saveButton: {
     borderRadius: 16,

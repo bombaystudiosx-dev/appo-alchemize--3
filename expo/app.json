@@ -1,12 +1,11 @@
 {
   "expo": {
     "name": "Alchemize",
-    "slug": "alchemize-repo",
+    "slug": "alchemize-level-up",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "alchemize",
-    "owner": "crfenterprise-app",
+    "scheme": "rork-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
@@ -14,55 +13,21 @@
       "resizeMode": "contain",
       "backgroundColor": "#0c0520"
     },
-    "updates": {
-      "url": "https://u.expo.dev/8a713b4d-71d5-4f30-9d02-37db8eb46755"
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.repo.alchemize-level-up",
-      "buildNumber": "1",
-      "entitlements": {
-        "com.apple.developer.applesignin": ["Default"]
-      },
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Alchemize uses your photo library to set your profile photo and add images to your manifestation board.",
-        "NSPhotoLibraryAddUsageDescription": "Alchemize saves images to your photo library.",
-        "NSCameraUsageDescription": "Alchemize uses your camera to take profile photos and scan food items for calorie tracking.",
-        "NSMicrophoneUsageDescription": "Alchemize uses the microphone for affirmation audio recording features.",
-        "NSHealthShareUsageDescription": "Alchemize reads your workout and activity data from Apple Health to enhance your fitness tracking experience.",
-        "NSHealthUpdateUsageDescription": "Alchemize may write workout summaries to Apple Health to keep your fitness data in sync.",
-        "NSCalendarsUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event.",
-        "NSCalendarsFullAccessUsageDescription": "Alchemize syncs your appointments to your iPhone calendar so you never miss an important event.",
-        "NSMotionUsageDescription": "Alchemize uses motion sensors to create an immersive parallax effect on the home screen.",
-        "NSLocationWhenInUseUsageDescription": "Alchemize may use your location to provide relevant local context for your goals and appointments."
-      },
-      "privacyManifests": {
-        "NSPrivacyAccessedAPITypes": [
-          {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
-          },
-          {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
-            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
-          },
-          {
-            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
-            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
-          }
-        ]
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos",
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera",
+        "NSMicrophoneUsageDescription": "Allow $(PRODUCT_NAME) to access your microphone"
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0c0520"
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.crfenterprise.alchemize",
-      "versionCode": 1,
+      "package": "app.rork.alchemize_app_skeleton",
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -76,17 +41,17 @@
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-    "privacy": "https://alchemize.app/privacy",
     "extra": {
-      "eas": {
-        "projectId": "8a713b4d-71d5-4f30-9d02-37db8eb46755"
+      "legalUrls": {
+        "privacy": "https://alchemize.app/privacy",
+        "termsOfService": "https://alchemize.app/terms"
       }
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://alchemize.app/"
+          "origin": "https://rork.com/"
         }
       ],
       "expo-font",
@@ -110,7 +75,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Alchemize uses your photo library to set your profile photo and add images to your manifestation board."
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
         }
       ],
       [
@@ -125,19 +90,12 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Alchemize uses your camera to take profile photos and scan food items for calorie tracking.",
-          "microphonePermission": "Alchemize uses the microphone for affirmation audio recording features.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
           "recordAudioAndroid": true
         }
       ],
-      "expo-secure-store",
-      "expo-apple-authentication",
-      [
-        "expo-auth-session",
-        {
-          "iosUrlSchemes": []
-        }
-      ]
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

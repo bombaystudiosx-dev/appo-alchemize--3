@@ -6,7 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Compass, Flame, Heart, House, Plu
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { gratitudeDb } from '@/lib/database';
+import { gratitudeDb } from '@/lib/db/gratitude';
 import { startOfLocalDay } from '@/lib/date-utils';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
@@ -17,7 +17,7 @@ const now = new Date();
 const INITIAL_MONTH = new Date(now.getFullYear(), now.getMonth(), 1);
 const INITIAL_SELECTED_DATE = startOfLocalDay(now).getTime();
 
-type BottomNavKey = 'home' | 'streaks' | 'explore' | 'profile';
+type BottomNavKey = 'home' | 'habits' | 'explore' | 'profile';
 
 interface GlassSurfaceProps {
   children: ReactNode;
@@ -255,11 +255,11 @@ export default function GratitudeJournalScreen() {
         },
       },
       {
-        key: 'streaks',
-        label: 'Streaks',
+        key: 'habits',
+        label: 'Habits',
         icon: <Flame color="rgba(214, 187, 109, 0.6)" size={22} strokeWidth={2.1} />,
         onPress: () => {
-          console.log('[GratitudeJournal] Bottom nav: Streaks');
+          console.log('[GratitudeJournal] Bottom nav: Habits');
           router.push('/habits' as any);
         },
       },

@@ -1,0 +1,5 @@
+Phase 7 validation:
+- production scaling files added
+- validate-handoff extended
+- production-preflight script added
+- no UI route behavior intentionally changed

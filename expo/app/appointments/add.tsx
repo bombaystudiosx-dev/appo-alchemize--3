@@ -12,8 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { Alert } from 'react-native';
 import { Calendar, Clock, User, Briefcase, FileText, Check } from 'lucide-react-native';
-import { appointmentsDb } from '@/lib/database';
+import { appointmentsDb } from '@/lib/db/appointments';
 import type { Appointment, AppointmentCategory } from '@/types';
 import { startOfLocalDay } from '@/lib/date-utils';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -27,6 +29,8 @@ export default function AddAppointmentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string; date?: string }>();
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -75,7 +79,7 @@ export default function AddAppointmentScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      console.log('[Appointments] Title is required');
+      Alert.alert('Missing title', 'Please enter an appointment title');
       return;
     }
 
@@ -84,6 +88,7 @@ export default function AddAppointmentScreen() {
       return;
     }
 
+    setSaving(true);
     try {
       const appointment: Appointment = {
         id: editingId || `apt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -124,9 +129,13 @@ export default function AddAppointmentScreen() {
         );
       }
 
+      await queryClient.invalidateQueries({ queryKey: ['appointments'] });
       router.back();
-    } catch (error) {
+    } catch (error: any) {
       console.error('[Appointments] Error saving:', error);
+      Alert.alert('Save failed', error?.message || 'Could not save appointment. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -380,11 +389,11 @@ export default function AddAppointmentScreen() {
                 },
               ]}
               onPress={handleSave}
-              disabled={!title.trim()}
+              disabled={!title.trim() || saving}
               activeOpacity={0.8}
             >
               <Text style={styles.saveButtonText}>
-                {isEditing ? 'Update Appointment' : 'Save Appointment'}
+                {saving ? 'Saving...' : isEditing ? 'Update Appointment' : 'Save Appointment'}
               </Text>
             </TouchableOpacity>
           </View>

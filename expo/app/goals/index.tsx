@@ -1,9 +1,10 @@
+import { invalidateGoals } from '../../services/queryInvalidationService';
 import React, { useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, ImageBackground, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, CheckCircle2, Circle, Flame, Target, TrendingUp } from 'lucide-react-native';
-import { goalsDb, goalCompletionsDb } from '@/lib/database';
+import { Plus, Trash2, CheckCircle2, Circle, Target, TrendingUp } from 'lucide-react-native';
+import { goalsDb, goalCompletionsDb } from '@/lib/db/goals';
 import type { Goal, GoalCompletion } from '@/types';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
@@ -49,7 +50,7 @@ export default function GoalsScreen() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => goalsDb.delete(id),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void invalidateGoals(queryClient);
     },
     onError: (error) => {
       console.error('[Goals] Delete error:', error);
@@ -61,7 +62,7 @@ export default function GoalsScreen() {
     mutationFn: (goal: Goal) =>
       goalsDb.update({ ...goal, status: goal.status === 'completed' ? 'in_progress' : 'completed', updatedAt: Date.now() }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['goals'] });
+      void invalidateGoals(queryClient);
     },
   });
 
@@ -96,10 +97,6 @@ export default function GoalsScreen() {
             ) : null}
             
             <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Flame size={14} color="#f59e0b" />
-                <Text style={styles.statText}>{item.streak || 0} streak</Text>
-              </View>
               <View style={styles.statItem}>
                 <Target size={14} color="#6366f1" />
                 <Text style={styles.statText}>{completions.length} logged</Text>

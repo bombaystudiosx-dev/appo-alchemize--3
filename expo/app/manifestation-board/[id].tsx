@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Edit2, Save, X, Trash2, Camera, Upload } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { manifestationsDb } from '@/lib/database';
+import { manifestationsDb } from '@/lib/db/manifestations';
 import type { Manifestation } from '@/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

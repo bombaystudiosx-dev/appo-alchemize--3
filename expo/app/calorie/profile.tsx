@@ -29,7 +29,7 @@ import {
   Edit3,
   RotateCcw,
 } from 'lucide-react-native';
-import { userNutritionProfileDb } from '@/lib/database';
+import { userNutritionProfileDb } from '@/lib/db/food';
 import type { UserNutritionProfile, ActivityLevel, WeightGoal } from '@/types';
 
 const ACTIVITY_LEVELS: { value: ActivityLevel; label: string; description: string; multiplier: number }[] = [

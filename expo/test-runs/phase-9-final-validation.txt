@@ -1,0 +1,35 @@
+$ node scripts/route-manifest-check.js
+exit=0
+STDOUT:
+✓ Route manifest check passed
+
+STDERR:
+
+
+---
+$ node scripts/handoff-readiness-check.js
+exit=0
+STDOUT:
+✓ Handoff readiness files present
+
+STDERR:
+
+
+---
+$ node scripts/production-preflight.js
+exit=0
+STDOUT:
+✓ Production preflight passed
+
+STDERR:
+
+
+---
+$ node scripts/recovery-integrity-check.js
+exit=0
+STDOUT:
+✓ Recovery integrity validation passed
+
+STDERR:
+
+

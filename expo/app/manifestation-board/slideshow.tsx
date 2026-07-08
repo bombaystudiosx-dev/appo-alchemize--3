@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { X, ChevronLeft, ChevronRight, Pause, Play } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { manifestationsDb } from '@/lib/database';
+import { manifestationsDb } from '@/lib/db/manifestations';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const SLIDE_DURATION = 5000;

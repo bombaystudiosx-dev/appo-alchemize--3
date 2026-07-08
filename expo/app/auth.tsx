@@ -11,13 +11,17 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, User, Eye, EyeOff, Globe, ChevronRight } from 'lucide-react-native';
+import { Mail, Lock, User, Eye, EyeOff, Globe, ChevronRight, ShieldAlert, Check } from 'lucide-react-native';
+
+const TERMS_ACCEPTED_KEY = '@alchemize/terms_accepted_v1';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const CRYSTAL_BALL_IMAGE = 'https://pub-e001eb4506b145aa938b5d3badbff6a5.r2.dev/attachments/89z8qu274hk8f1cht7vcg.png';
@@ -45,6 +49,15 @@ const TRANSLATIONS = {
     cancel: 'Cancel',
     resetSent: 'Reset link sent! Check your email.',
     enterEmail: 'Please enter your email address',
+    agreeLabel: 'I agree to the',
+    termsLink: 'Terms & Privacy',
+    mustAgree: 'You must agree to the Terms to continue',
+    termsTitle: 'Terms & Privacy Agreement',
+    termsIntro: 'Please read carefully before using Alchemize.',
+    termsBody:
+      'By using Alchemize you agree to the following:\n\n1. Use at Your Own Risk. This app is provided "as is" without warranties of any kind. Content (affirmations, fitness, nutrition, financial and wellness data) is for personal informational purposes only and is not professional medical, legal, or financial advice.\n\n2. Data & Privacy. We store the data you create (goals, habits, photos, journals, health metrics) to operate the app. We use industry-standard practices but no system is 100% secure.\n\n3. No Liability for Data Leaks. To the maximum extent permitted by law, Alchemize, its developers and affiliates are NOT responsible or liable for any data breaches, leaks, loss, unauthorized access, or damages arising from use of the app or third-party services (including Apple, Google, and Supabase).\n\n4. Your Responsibility. You are responsible for keeping your account credentials secure and for the content you upload. Do not share sensitive medical, legal, or financial details that you would not want stored.\n\n5. Consent. By tapping "I Agree" you confirm you have read, understood, and accepted these terms and our Privacy Policy.',
+    iAgree: 'I Agree & Continue',
+    decline: 'Decline',
   },
   es: {
     transformTitle: 'Alchemize',
@@ -68,6 +81,15 @@ const TRANSLATIONS = {
     cancel: 'Cancelar',
     resetSent: '¡Enlace enviado! Revisa tu correo.',
     enterEmail: 'Por favor ingresa tu correo electrónico',
+    agreeLabel: 'Acepto los',
+    termsLink: 'Términos y Privacidad',
+    mustAgree: 'Debes aceptar los Términos para continuar',
+    termsTitle: 'Acuerdo de Términos y Privacidad',
+    termsIntro: 'Por favor lee con atención antes de usar Alchemize.',
+    termsBody:
+      'Al usar Alchemize aceptas lo siguiente:\n\n1. Uso Bajo Tu Propio Riesgo. Esta aplicación se proporciona "tal cual" sin garantías de ningún tipo. El contenido (afirmaciones, fitness, nutrición, datos financieros y de bienestar) es solo para fines informativos personales y no constituye asesoramiento médico, legal o financiero profesional.\n\n2. Datos y Privacidad. Almacenamos los datos que creas (metas, hábitos, fotos, diarios, métricas de salud) para operar la app. Usamos prácticas estándar de la industria pero ningún sistema es 100% seguro.\n\n3. Sin Responsabilidad por Filtraciones de Datos. En la máxima medida permitida por la ley, Alchemize, sus desarrolladores y afiliados NO son responsables por filtraciones de datos, brechas, pérdidas, acceso no autorizado o daños derivados del uso de la app o servicios de terceros (incluidos Apple, Google y Supabase).\n\n4. Tu Responsabilidad. Eres responsable de mantener seguras tus credenciales y del contenido que subes. No compartas información médica, legal o financiera sensible que no quieras almacenada.\n\n5. Consentimiento. Al tocar "Acepto" confirmas que has leído, comprendido y aceptado estos términos y nuestra Política de Privacidad.',
+    iAgree: 'Acepto y Continuar',
+    decline: 'Rechazar',
   },
 };
 
@@ -93,10 +115,53 @@ export default function AuthScreen() {
   const [error, setError] = useState('');
   const [language, setLanguage] = useState<'en' | 'es'>('en');
   const [showPassword, setShowPassword] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [checkingTerms, setCheckingTerms] = useState(true);
 
   const t = TRANSLATIONS[language];
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const v = await AsyncStorage.getItem(TERMS_ACCEPTED_KEY);
+        if (v === 'true') {
+          setTermsAccepted(true);
+        } else {
+          setShowTermsModal(true);
+        }
+      } catch {
+        setShowTermsModal(true);
+      } finally {
+        setCheckingTerms(false);
+      }
+    })();
+  }, []);
+
+  const acceptTerms = async () => {
+    try {
+      await AsyncStorage.setItem(TERMS_ACCEPTED_KEY, 'true');
+    } catch {}
+    setTermsAccepted(true);
+    setShowTermsModal(false);
+  };
+
+  const declineTerms = () => {
+    setShowTermsModal(false);
+    setTermsAccepted(false);
+  };
+
+  const requireTerms = (): boolean => {
+    if (!termsAccepted) {
+      setShowTermsModal(true);
+      setError(t.mustAgree);
+      return false;
+    }
+    return true;
+  };
+
   const handleAuth = async () => {
+    if (!requireTerms()) return;
     if (!email || !password) {
       setError(t.fillFields);
       return;
@@ -152,6 +217,7 @@ export default function AuthScreen() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!requireTerms()) return;
     setGoogleLoading(true);
     setError('');
     const result = await loginWithGoogle();
@@ -299,6 +365,35 @@ export default function AuthScreen() {
               </View>
             )}
 
+            <View style={styles.agreeRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (termsAccepted) {
+                    setTermsAccepted(false);
+                    AsyncStorage.removeItem(TERMS_ACCEPTED_KEY).catch(() => {});
+                  } else {
+                    setShowTermsModal(true);
+                  }
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <View style={[styles.check, termsAccepted && styles.checkOn]}>
+                  {termsAccepted && <Check color="#fff" size={11} strokeWidth={3} />}
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.agreeText}>
+                {t.agreeLabel}{' '}
+                <Text
+                  style={styles.agreeLink}
+                  onPress={() => setShowTermsModal(true)}
+                  suppressHighlighting={false}
+                >
+                  {t.termsLink}
+                </Text>
+              </Text>
+            </View>
+
             {error ? <Text style={styles.errorMsg}>{error}</Text> : null}
 
             <TouchableOpacity
@@ -387,6 +482,56 @@ export default function AuthScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={showTermsModal && !checkingTerms}
+        transparent
+        animationType="fade"
+        onRequestClose={declineTerms}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIconWrap}>
+                <ShieldAlert color="#fbbf24" size={22} />
+              </View>
+              <Text style={styles.modalTitle}>{t.termsTitle}</Text>
+              <Text style={styles.modalIntro}>{t.termsIntro}</Text>
+            </View>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalScrollContent}
+              showsVerticalScrollIndicator
+            >
+              <Text style={styles.modalBody}>{t.termsBody}</Text>
+            </ScrollView>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.declineBtn}
+                onPress={declineTerms}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.declineText}>{t.decline}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.agreeBtn}
+                onPress={acceptTerms}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#8b5cf6', '#7c3aed', '#6d28d9']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.agreeBtnGradient}
+                >
+                  <Check color="#fff" size={16} strokeWidth={3} />
+                  <Text style={styles.agreeBtnText}>{t.iAgree}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -646,5 +791,124 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     fontWeight: '600' as const,
+  },
+  agreeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  agreeText: {
+    flex: 1,
+    fontSize: 11,
+    color: 'rgba(196,181,253,0.7)',
+    lineHeight: 16,
+  },
+  agreeLink: {
+    color: '#a78bfa',
+    fontWeight: '700' as const,
+    textDecorationLine: 'underline',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(4,1,12,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 440,
+    maxHeight: '85%',
+    backgroundColor: '#120824',
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(139,92,246,0.25)',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    paddingHorizontal: 22,
+    paddingTop: 22,
+    paddingBottom: 14,
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(139,92,246,0.18)',
+  },
+  modalIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(251,191,36,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,191,36,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '700' as const,
+    color: '#fff',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  modalIntro: {
+    fontSize: 12,
+    color: 'rgba(196,181,253,0.7)',
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: SCREEN_HEIGHT * 0.42,
+  },
+  modalScrollContent: {
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+  },
+  modalBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.82)',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingTop: 12,
+    paddingBottom: 18,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(139,92,246,0.18)',
+  },
+  declineBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  declineText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600' as const,
+    fontSize: 14,
+  },
+  agreeBtn: {
+    flex: 1.4,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  agreeBtnGradient: {
+    height: 46,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  agreeBtnText: {
+    color: '#fff',
+    fontWeight: '700' as const,
+    fontSize: 14,
   },
 });

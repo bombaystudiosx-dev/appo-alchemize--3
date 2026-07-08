@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -6,17 +6,15 @@ import {
   TouchableOpacity,
   Text,
   ImageBackground,
-  Animated,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Settings, ChevronDown, ChevronUp, Timer, Hash, CheckSquare, Play, Pause, Square } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import ConfettiCannon from 'react-native-confetti-cannon';
-import { habitsDb, habitCompletionsDb, userProfileDb } from '@/lib/database';
+import { habitsDb, habitCompletionsDb } from '@/lib/db';
 import type { Habit } from '@/types';
 import { ASSETS } from '@/constants/assets';
 import LoadingState from '@/components/LoadingState';
@@ -36,40 +34,31 @@ const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export default function HabitsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const confettiRef = useRef<any>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [collapsedSections, setCollapsedSections] = useState<Set<Section>>(new Set());
   const [timerStates, setTimerStates] = useState<Record<string, { running: boolean; elapsed: number; interval?: any }>>({});
   const [counterValues, setCounterValues] = useState<Record<string, number>>({});
-  const [floatingRewards, setFloatingRewards] = useState<{ id: string; xp: number; energy: number; x: number; y: number }[]>([]);
 
   const { data: habits = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['habits'],
     queryFn: () => habitsDb.getAll(),
   });
 
-  const { data: userProfile } = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: () => userProfileDb.get(),
-  });
-
   const { data: allCompletions = [] } = useQuery({
     queryKey: ['habit-completions'],
-    queryFn: async () => {
-      const comps = [];
-      for (const habit of habits) {
-        const habitComps = await habitCompletionsDb.getByHabitId(habit.id);
-        comps.push(...habitComps);
-      }
-      return comps;
-    },
-    enabled: habits.length > 0,
+    queryFn: () => habitCompletionsDb.getAll(),
   });
 
-
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ['habits'] });
+      queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
+      refetch();
+    }, [queryClient, refetch])
+  );
 
   const completeHabitMutation = useMutation({
-    mutationFn: async ({ habitId, value, xp, energy }: { habitId: string; value: number; xp: number; energy: number }) => {
+    mutationFn: async ({ habitId, value }: { habitId: string; value: number }) => {
       const dateStart = new Date(selectedDate).setHours(0, 0, 0, 0);
       await habitCompletionsDb.create({
         id: Date.now().toString(),
@@ -80,36 +69,29 @@ export default function HabitsScreen() {
         completedAt: Date.now(),
       });
 
-      const habit = habits.find(h => h.id === habitId);
-      if (habit) {
-        const updatedStreak = getHabitStreak(habitId) + 1;
-        await habitsDb.update({
-          ...habit,
-          streak: updatedStreak,
-          lastCompletedDate: new Date().toISOString(),
-        });
+      try {
+        const allHabits = await habitsDb.getAll();
+        const habit = allHabits.find(h => h.id === habitId);
+        if (habit) {
+          await habitsDb.update({
+            ...habit,
+            lastCompletedDate: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // Non-critical: habit metadata update is best-effort
       }
-
-      await userProfileDb.updateXpAndEnergy(xp, energy);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['habit-completions'] });
       void queryClient.invalidateQueries({ queryKey: ['habits'] });
-      void queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      confettiRef.current?.start();
-      
-      showFloatingReward(variables.xp, variables.energy);
+    },
+    onError: (error: any) => {
+      console.error('[Habits] Completion failed:', error);
+      Alert.alert('Error', 'Failed to log completion. Please try again.');
     },
   });
-
-  const showFloatingReward = (xp: number, energy: number) => {
-    const id = Date.now().toString();
-    setFloatingRewards(prev => [...prev, { id, xp, energy, x: Math.random() * 200 + 100, y: 300 }]);
-    setTimeout(() => {
-      setFloatingRewards(prev => prev.filter(r => r.id !== id));
-    }, 2000);
-  };
 
   const getWeekDates = () => {
     const now = new Date();
@@ -130,53 +112,17 @@ export default function HabitsScreen() {
     (habitId: string, date: Date): boolean => {
       const dateStart = new Date(date).setHours(0, 0, 0, 0);
       return allCompletions.some((c) => {
-        const compDate = new Date(c.completedAt).setHours(0, 0, 0, 0);
+        const compDate = new Date(c.completionDate).setHours(0, 0, 0, 0);
         return c.habitId === habitId && compDate === dateStart;
       });
     },
     [allCompletions]
   );
 
-  const getHabitStreak = useCallback(
-    (habitId: string): number => {
-      const completions = allCompletions
-        .filter((c) => c.habitId === habitId)
-        .sort((a, b) => b.completedAt - a.completedAt);
-
-      if (completions.length === 0) return 0;
-
-      let streak = 0;
-      const today = new Date().setHours(0, 0, 0, 0);
-      let checkDate = today;
-
-      for (const completion of completions) {
-        const compDate = new Date(completion.completedAt).setHours(0, 0, 0, 0);
-        if (compDate === checkDate) {
-          streak++;
-          checkDate -= 86400000;
-        } else if (compDate < checkDate) {
-          break;
-        }
-      }
-
-      return streak;
-    },
-    [allCompletions]
-  );
-
-  const totalStats = useMemo(() => {
-    const maxStreak = Math.max(...habits.map(h => getHabitStreak(h.id)), 0);
-    return {
-      maxStreak,
-      totalXP: userProfile?.totalXp || 0,
-      totalEnergy: userProfile?.totalEnergy || 0,
-    };
-  }, [habits, userProfile, getHabitStreak]);
-
   const getDayCompletionCount = (date: Date): number => {
     const dateStart = new Date(date).setHours(0, 0, 0, 0);
     return allCompletions.filter((c) => {
-      const compDate = new Date(c.completedAt).setHours(0, 0, 0, 0);
+      const compDate = new Date(c.completionDate).setHours(0, 0, 0, 0);
       return compDate === dateStart;
     }).length;
   };
@@ -202,7 +148,7 @@ export default function HabitsScreen() {
     };
 
     habits.forEach((habit) => {
-      const section = (habit as any).section || 'custom';
+      const section = habit.section || 'custom';
       if (grouped[section as Section]) {
         grouped[section as Section].push(habit);
       } else {
@@ -254,12 +200,10 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: minutes,
-        xp: habit.xpReward,
-        energy: habit.energyReward,
       });
       setTimerStates(prev => ({ ...prev, [habit.id]: { running: false, elapsed: 0 } }));
     } else {
-      Alert.alert('Not Yet!', `You need to complete ${goalMinutes} ${habit.goalUnit} to earn rewards.`);
+      Alert.alert('Not Yet!', `You need to complete ${goalMinutes} ${habit.goalUnit} to log this habit.`);
     }
   };
 
@@ -269,8 +213,6 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: count,
-        xp: habit.xpReward,
-        energy: habit.energyReward,
       });
       setCounterValues(prev => ({ ...prev, [habit.id]: 0 }));
     } else {
@@ -284,8 +226,6 @@ export default function HabitsScreen() {
       completeHabitMutation.mutate({
         habitId: habit.id,
         value: 1,
-        xp: habit.xpReward,
-        energy: habit.energyReward,
       });
     }
   };
@@ -298,7 +238,6 @@ export default function HabitsScreen() {
 
   const renderHabitCard = (habit: Habit) => {
     const isCompleted = isCompletedOnDate(habit.id, selectedDate);
-    const streak = getHabitStreak(habit.id);
     const timerState = timerStates[habit.id];
     const counterValue = counterValues[habit.id] || 0;
 
@@ -315,16 +254,7 @@ export default function HabitsScreen() {
                 {habit.type === 'timer' && `⏱ ${habit.goal} ${habit.goalUnit}`}
                 {habit.type === 'counter' && `🔢 ${habit.goal} times`}
                 {habit.type === 'checkbox' && 'Daily task'}
-                {' • 🔥 '}{streak}
               </Text>
-            </View>
-          </View>
-          <View style={styles.habitRewards}>
-            <View style={styles.rewardBadge}>
-              <Text style={styles.rewardText}>🏆 {habit.xpReward}</Text>
-            </View>
-            <View style={styles.rewardBadge}>
-              <Text style={styles.rewardText}>⚡ {habit.energyReward}</Text>
             </View>
           </View>
         </View>
@@ -499,32 +429,6 @@ export default function HabitsScreen() {
           </TouchableOpacity>
         </View>
 
-        <BlurView intensity={15} tint="dark" style={styles.statsCard}>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🔥</Text>
-            <View>
-              <Text style={styles.statValue}>{totalStats.maxStreak}</Text>
-              <Text style={styles.statLabel}>Max Streak</Text>
-            </View>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🏆</Text>
-            <View>
-              <Text style={styles.statValue}>{totalStats.totalXP}</Text>
-              <Text style={styles.statLabel}>Total XP</Text>
-            </View>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>⚡</Text>
-            <View>
-              <Text style={styles.statValue}>{totalStats.totalEnergy}</Text>
-              <Text style={styles.statLabel}>Energy</Text>
-            </View>
-          </View>
-        </BlurView>
-
         <View style={styles.dateStrip}>
           {weekDates.map((date, index) => {
             const completionCount = getDayCompletionCount(date);
@@ -555,7 +459,7 @@ export default function HabitsScreen() {
           })}
         </View>
 
-        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           {isLoading ? (
             <LoadingState message="Loading habits..." />
           ) : isError ? (
@@ -570,57 +474,8 @@ export default function HabitsScreen() {
             SECTIONS.map(renderSection)
           )}
         </ScrollView>
-
-        {floatingRewards.map(reward => (
-          <FloatingReward key={reward.id} xp={reward.xp} energy={reward.energy} x={reward.x} y={reward.y} />
-        ))}
-
-        <ConfettiCannon
-          count={50}
-          origin={{ x: 200, y: 300 }}
-          autoStart={false}
-          ref={confettiRef}
-          fadeOut
-        />
       </LinearGradient>
     </ImageBackground>
-  );
-}
-
-function FloatingReward({ xp, energy, x, y }: { xp: number; energy: number; x: number; y: number }) {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: -100,
-        duration: 2000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: 2000,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [translateY, opacity]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.floatingReward,
-        {
-          left: x,
-          top: y,
-          transform: [{ translateY }],
-          opacity,
-        },
-      ]}
-    >
-      <Text style={styles.floatingText}>+{xp} 🏆</Text>
-      <Text style={styles.floatingText}>+{energy} ⚡</Text>
-    </Animated.View>
   );
 }
 
@@ -645,41 +500,6 @@ const styles = StyleSheet.create({
     fontWeight: '700' as const,
     color: '#C9A7FF',
     letterSpacing: 0.5,
-  },
-  statsCard: {
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderRadius: 20,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(201, 167, 255, 0.2)',
-    overflow: 'hidden',
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  statIcon: {
-    fontSize: 24,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700' as const,
-    color: '#FFD700',
-  },
-  statLabel: {
-    fontSize: 11,
-    color: 'rgba(201, 167, 255, 0.6)',
-    fontWeight: '600' as const,
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(201, 167, 255, 0.2)',
   },
   dateStrip: {
     flexDirection: 'row',
@@ -802,22 +622,6 @@ const styles = StyleSheet.create({
   habitSubtext: {
     fontSize: 12,
     color: 'rgba(201, 167, 255, 0.6)',
-  },
-  habitRewards: {
-    gap: 4,
-  },
-  rewardBadge: {
-    backgroundColor: 'rgba(255, 215, 0, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-  },
-  rewardText: {
-    fontSize: 11,
-    color: '#FFD700',
-    fontWeight: '600' as const,
   },
   checkboxButton: {
     flexDirection: 'row',
@@ -978,17 +782,5 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: 'rgba(201, 167, 255, 0.6)',
-  },
-  floatingReward: {
-    position: 'absolute',
-    zIndex: 1000,
-  },
-  floatingText: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: '#FFD700',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
 });

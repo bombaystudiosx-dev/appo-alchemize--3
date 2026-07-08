@@ -44,8 +44,6 @@ export const goalsRouter = createTRPCRouter({
         id,
         userId: ctx.user.id,
         ...input,
-        streak: 0,
-        bestStreak: 0,
         lastCompletedDate: null,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -64,8 +62,6 @@ export const goalsRouter = createTRPCRouter({
         targetDate: z.number().nullable(),
         status: z.string(),
         progress: z.number(),
-        streak: z.number(),
-        bestStreak: z.number(),
         lastCompletedDate: z.number().nullable(),
       })
     )
@@ -79,8 +75,6 @@ export const goalsRouter = createTRPCRouter({
           targetDate = $targetDate,
           status = $status,
           progress = $progress,
-          streak = $streak,
-          bestStreak = $bestStreak,
           lastCompletedDate = $lastCompletedDate,
           updatedAt = $updatedAt
         WHERE userId = $userId`,

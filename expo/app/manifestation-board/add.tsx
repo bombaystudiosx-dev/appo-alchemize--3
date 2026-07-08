@@ -9,6 +9,7 @@ import {
   Alert,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -17,7 +18,7 @@ import { useRouter, Stack } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Upload, Camera, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { manifestationsDb } from '@/lib/database';
+import { manifestationsDb } from '@/lib/db/manifestations';
 import type { Manifestation } from '@/types';
 
 interface SelectedImageState {
@@ -232,6 +233,7 @@ export default function AddManifestationScreen() {
         colors={['#1a0a3e', '#0c0520', '#0d1033']}
         style={styles.background}
       >
+        <KeyboardAvoidingView style={styles.background} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
@@ -347,6 +349,7 @@ export default function AddManifestationScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </LinearGradient>
 
       <Modal
